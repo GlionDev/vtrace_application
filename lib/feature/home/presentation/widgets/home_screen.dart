@@ -1,15 +1,226 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../viewmodel/home_viewmodel.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../../../../core/design_system/widgets/vtrace_textfield.dart';
 
 /// 앱의 메인 진입 후 처음 표시되는 홈 화면 위젯입니다.
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _linkController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        ref
+            .read(homeViewModelProvider.notifier)
+            .setTabIndex(_tabController.index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _linkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    // 2-1. 가져오기 눌렀을때 파일 가져오는것 관련 권한 요청
+    // (Android 버전에 대응하기 위해 storage와 audio 모두 고려)
+    var storageStatus = await Permission.storage.status;
+    var audioStatus = await Permission.audio.status;
+
+    if (!storageStatus.isGranted && !audioStatus.isGranted) {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.storage,
+        Permission.audio,
+      ].request();
+
+      storageStatus = statuses[Permission.storage] ?? PermissionStatus.denied;
+      audioStatus = statuses[Permission.audio] ?? PermissionStatus.denied;
+    }
+
+    bool isGranted = storageStatus.isGranted || audioStatus.isGranted;
+
+    if (!isGranted) {
+      // 2-3. 여러번 거부한 뒤 "가져오기" 눌렀을 경우 Dialog 띄워서 권한 허용 안내
+      if (storageStatus.isPermanentlyDenied ||
+          audioStatus.isPermanentlyDenied) {
+        _showPermissionDialog();
+      } else {
+        // 2-2. 권한 거부 시 Toast 메시지 출력
+        Fluttertoast.showToast(msg: "해당 기능을 이용하기 위해 권한을 허용해주세요");
+      }
+      return;
+    }
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        ref
+            .read(homeViewModelProvider.notifier)
+            .setFilePath(result.files.single.path!);
+        Fluttertoast.showToast(msg: "오디오 파일을 선택했습니다.");
+      } else {
+        Fluttertoast.showToast(msg: "파일 선택 취소");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "파일 가져오기 오류: $e");
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("권한 허용 안내"),
+        content: const Text("해당 기능을 이용하기 위해 설정 - VTrace로 이동하여 권한을 허용해주세요."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("취소"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings();
+            },
+            child: const Text("확인"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final homeState = ref.watch(homeViewModelProvider);
+    final viewModel = ref.read(homeViewModelProvider.notifier);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('VTrace Home')),
-      body: const Center(child: Text('Home Screen (Skeleton)')),
+      appBar: AppBar(
+        title: const Text('VTrace Home'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Center(
+              child: Text(
+                '무료 횟수: ${homeState.remainingCredits} / 1',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "내 파일에서 가져오기"),
+            Tab(text: "링크로 가져오기"),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // 탭 1: 내 파일에서 가져오기
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickFile,
+                    icon: const Icon(Icons.file_upload),
+                    label: const Text('파일 가져오기 (Audio)'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      textStyle: const TextStyle(fontSize: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (homeState.selectedFilePath != null)
+                    Text(
+                      '선택된 파일: ${homeState.selectedFilePath!.split('/').last}',
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // 탭 2: 링크로 가져오기
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: VTraceTextField(
+                        controller: _linkController,
+                        hintText: 'https:// 링크를 입력하세요',
+                        onChanged: viewModel.onLinkChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed:
+                            (homeState.linkInput.isNotEmpty &&
+                                !homeState.isLoading)
+                            ? () async {
+                                await viewModel.separateLink();
+                                Fluttertoast.showToast(msg: "분리 요청 완료");
+                              }
+                            : null,
+                        child: homeState.isLoading
+                            ? const CircularProgressIndicator(strokeWidth: 2)
+                            : const Text(
+                                '분리',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  '참고: 다른 앱에서 링크를 공유하여 바로 가져올 수도 있습니다.\n(해당 기능은 추후 추가 예정)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -155,7 +155,7 @@ class SignUpViewModel extends _$SignUpViewModel {
           !hasUppercase ||
           !hasLowercase ||
           !hasSpecialCharacters) {
-        err = '대소문자, 특수문자 포함 10자리로 설정해주세요';
+        err = '대소문자, 특수문자 포함 10자리 이상으로 설정해주세요';
       }
     }
 

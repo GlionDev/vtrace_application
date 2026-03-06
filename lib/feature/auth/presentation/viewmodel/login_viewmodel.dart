@@ -88,26 +88,10 @@ class LoginViewModel extends _$LoginViewModel {
   ///
   /// [value] 변경된 패스워드 텍스트
   void onPasswordChanged(String value) {
-    String? err;
-    if (value.isNotEmpty) {
-      bool hasMinLength = value.length >= 10;
-      bool hasUppercase = value.contains(RegExp(r'[A-Z]'));
-      bool hasLowercase = value.contains(RegExp(r'[a-z]'));
-      bool hasSpecialCharacters = value.contains(
-        RegExp(r'[!@#\$&*~]'),
-      ); // 간이 정규식
-
-      if (!hasMinLength ||
-          !hasUppercase ||
-          !hasLowercase ||
-          !hasSpecialCharacters) {
-        err = '대소문자, 특수문자 포함 10자리로 설정해주세요';
-      }
-    }
     state = state.copyWith(
       password: value,
-      passwordError: err,
-      clearErrors: err == null,
+      passwordError: null,
+      clearErrors: true,
     );
   }
 

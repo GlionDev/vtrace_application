@@ -2,6 +2,27 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-03-09 (오디오 권한 외 불필요한 미디어 권한 제거)
+
+### 변경 사항
+- **권한 제거**: `AndroidManifest.xml` 파일 내 선언되어 있던 `READ_MEDIA_VIDEO`, `READ_MEDIA_IMAGES` 권한을 제거했습니다. (`READ_MEDIA_AUDIO` 및 기존 `READ_EXTERNAL_STORAGE` 권한은 유지)
+
+### 변경 이유
+- 앱 내 요구사항(파일 가져오기 시 오직 Audio 타입 파일만 가져옴)에 맞춰 불필요한 이미지/비디오 읽기 권한을 선언부에서 제외하여 불필요한 스토어 권한 소명을 줄이기 위함입니다.
+
+### 실행 순서
+1. `android/app/src/main/AndroidManifest.xml` 의 `<uses-permission>` 라인 검토 및 삭제
+2. 작업 로그 반영
+
+### 수정 혹은 추가된 파일 경로
+- `/android/app/src/main/AndroidManifest.xml`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 추가 코딩 작업 없이 매니페스트 갱신만이므로 앱 빌드 및 스토어 제출 과정에서 비디오/이미지 권한 요청 목록이 사라진 것을 확인할 수 있습니다.
+
+---
+
 ## 2026-03-09 (스플래시 화면 테마 대응 보완 - 검은색 고정)
 
 ### 변경 사항

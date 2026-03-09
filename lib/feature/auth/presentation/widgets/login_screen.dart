@@ -65,46 +65,119 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('VTrace 로그인')),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 24),
+              // 헤더 타이틀
+              const Text(
+                '환영합니다!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              // 서브타이틀
+              const Text(
+                'VTrace를 사용하기 위한 계정으로 로그인해주세요.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 48),
+
               // 이메일 입력 영역
               VTraceTextField(
+                label: '이메일 주소',
                 controller: _emailController,
-                hintText: '이메일을 입력하세요',
+                hintText: 'example@gmail.com',
                 errorText: loginState.emailError,
                 onChanged: viewModel.onEmailChanged,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // 비밀번호 입력 영역
               VTraceTextField(
+                label: '비밀번호',
                 controller: _passwordController,
                 hintText: '비밀번호를 입력하세요',
                 obscureText: true,
                 errorText: loginState.passwordError,
                 onChanged: viewModel.onPasswordChanged,
               ),
+              const SizedBox(height: 16),
+
+              // 자동로그인 & 비밀번호 찾기 행
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: loginState.rememberMe,
+                          onChanged: viewModel.toggleRememberMe,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('자동로그인', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context.push('/forgot-password');
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      '비밀번호를 잊으셨나요?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 32),
 
-              // 로그인 버튼 (진행 중일 땐 로딩 인디케이터, 아니면 버튼 활성화 처리)
+              // 로그인 버튼
               VTraceButton(
-                text: 'Login',
+                text: '로그인',
                 isLoading: loginState.isLoading,
                 onPressed: loginState.isValid ? _attemptLogin : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // 회원가입 페이지 이동 유도 항목
-              TextButton(
-                onPressed: () {
-                  context.go('/signup');
-                },
-                child: const Text('계정이 없으신가요? 여기를 눌러 가입하세요'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('계정이 없으신가요? '),
+                  GestureDetector(
+                    onTap: () {
+                      context.go('/signup');
+                    },
+                    child: Text(
+                      '여기를 눌러 가입하세요',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

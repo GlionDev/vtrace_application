@@ -60,15 +60,27 @@ dev_dependencies:
   riverpod_generator: any
   json_serializable: any
   drift_dev: any
+  flutter_native_splash: any
 
 flutter_launcher_icons:
-  image_path_android: "assets/icons/vtrace_logo.png"
-  image_path_ios: "assets/icons/vtrace_logo.png"
+  image_path_android: "assets/logo/vtrace_app_logo.png"
+  image_path_ios: "assets/logo/vtrace_app_logo.png"
   android: true
   ios: true
   min_sdk_android: 21 # android min sdk min:16, default 21
   remove_alpha_ios: true
-  background_color_ios: "#000000"
+  background_color_ios: "#00000000"
+
+flutter_native_splash:
+  color: "#000000"
+  color_dark: "#000000"
+  image: "assets/logo/vtrace_splash_logo.png"
+  android_12:
+    image: "assets/logo/vtrace_splash_logo.png"
+    color: "#000000"
+    color_dark: "#000000"
+    icon_background_color: "#000000"
+    icon_background_color_dark: "#000000"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -83,7 +95,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/icons/
+    - assets/logo/
     # - images/a_dot_burr.jpeg
     # - images/a_dot_ham.jpeg
 

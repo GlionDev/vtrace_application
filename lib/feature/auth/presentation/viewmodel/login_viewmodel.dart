@@ -12,6 +12,9 @@ class LoginState {
   /// 사용자가 입력한 비밀번호
   final String password;
 
+  /// 자동로그인 체크 여부
+  final bool rememberMe;
+
   /// 진행 중 (로딩) 상태 여부
   final bool isLoading;
 
@@ -28,6 +31,7 @@ class LoginState {
   const LoginState({
     this.email = '',
     this.password = '',
+    this.rememberMe = false,
     this.isLoading = false,
     this.errorMessage,
     this.emailError,
@@ -46,6 +50,7 @@ class LoginState {
   LoginState copyWith({
     String? email,
     String? password,
+    bool? rememberMe,
     bool? isLoading,
     String? errorMessage,
     String? emailError,
@@ -55,6 +60,7 @@ class LoginState {
     return LoginState(
       email: email ?? this.email,
       password: password ?? this.password,
+      rememberMe: rememberMe ?? this.rememberMe,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearErrors ? null : (errorMessage ?? this.errorMessage),
       emailError: clearErrors ? null : (emailError ?? this.emailError),
@@ -93,6 +99,13 @@ class LoginViewModel extends _$LoginViewModel {
       passwordError: null,
       clearErrors: true,
     );
+  }
+
+  /// 자동로그인 상태 토글
+  void toggleRememberMe(bool? value) {
+    if (value != null) {
+      state = state.copyWith(rememberMe: value);
+    }
   }
 
   /// 사용자가 로그인 버튼을 클릭했을 때 호출되는 함수입니다.

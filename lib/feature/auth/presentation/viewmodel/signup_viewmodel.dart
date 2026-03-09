@@ -7,6 +7,7 @@ part 'signup_viewmodel.g.dart';
 
 /// 뷰모델에서 관리할 회원가입 폼의 상태 클래스입니다.
 class SignUpState {
+  final String nickname;
   final String email;
   final String code;
   final String password;
@@ -25,6 +26,7 @@ class SignUpState {
   final String? confirmPasswordError;
 
   const SignUpState({
+    this.nickname = '',
     this.email = '',
     this.code = '',
     this.password = '',
@@ -42,6 +44,7 @@ class SignUpState {
 
   /// 모든 항목이 입력되었고 개별 에러가 없을 때 가입 버튼이 활성화됩니다.
   bool get isValid =>
+      nickname.isNotEmpty &&
       email.isNotEmpty &&
       code.isNotEmpty &&
       password.isNotEmpty &&
@@ -52,6 +55,7 @@ class SignUpState {
       confirmPasswordError == null;
 
   SignUpState copyWith({
+    String? nickname,
     String? email,
     String? code,
     String? password,
@@ -68,6 +72,7 @@ class SignUpState {
     bool clearErrors = false,
   }) {
     return SignUpState(
+      nickname: nickname ?? this.nickname,
       email: email ?? this.email,
       code: code ?? this.code,
       password: password ?? this.password,
@@ -98,6 +103,10 @@ class SignUpViewModel extends _$SignUpViewModel {
       _timer?.cancel();
     });
     return const SignUpState();
+  }
+
+  void onNicknameChanged(String value) {
+    state = state.copyWith(nickname: value);
   }
 
   void onSendVerificationCode() {
@@ -149,13 +158,15 @@ class SignUpViewModel extends _$SignUpViewModel {
       bool hasMinLength = value.length >= 10;
       bool hasUppercase = value.contains(RegExp(r'[A-Z]'));
       bool hasLowercase = value.contains(RegExp(r'[a-z]'));
+      bool hasDigit = value.contains(RegExp(r'[0-9]'));
       bool hasSpecialCharacters = value.contains(RegExp(r'[!@#\$&*~]'));
 
       if (!hasMinLength ||
           !hasUppercase ||
           !hasLowercase ||
+          !hasDigit ||
           !hasSpecialCharacters) {
-        err = '대소문자, 특수문자 포함 10자리 이상으로 설정해주세요';
+        err = '대소문자, 숫자, 특수문자 포함 10자리 이상으로 입력해주세요';
       }
     }
 

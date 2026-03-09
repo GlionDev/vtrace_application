@@ -15,6 +15,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
+  final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -23,6 +24,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   void dispose() {
+    _nicknameController.dispose();
     _emailController.dispose();
     _codeController.dispose();
     _passwordController.dispose();
@@ -67,15 +69,43 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       appBar: AppBar(title: const Text('VTrace 회원가입')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 24),
+              // 헤더 타이틀
+              const Text(
+                '계정 생성',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              // 서브타이틀
+              const Text(
+                'VTrace를 사용하기 위한 계정을 생성합니다',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 48),
+
+              // 닉네임 입력란
+              VTraceTextField(
+                label: '닉네임',
+                controller: _nicknameController,
+                hintText: '닉네임을 입력하세요',
+                isSuccess: signUpState.nickname.isNotEmpty,
+                onChanged: viewModel.onNicknameChanged,
+              ),
+              const SizedBox(height: 16),
+
+              // 이메일과 인증버튼
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: VTraceTextField(
+                      label: '이메일 주소',
                       controller: _emailController,
                       hintText: '이메일을 입력하세요',
                       errorText: signUpState.emailError,
@@ -110,11 +140,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
+              // 인증 코드 입력란 (타이머 포함)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: VTraceTextField(
+                      label: '인증 코드',
                       controller: _codeController,
                       hintText: '인증 코드를 입력하세요 (예: 1234)',
                       errorText: signUpState.codeError,
@@ -144,7 +176,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
+              // 비밀번호 입력란
               VTraceTextField(
+                label: '비밀번호',
                 controller: _passwordController,
                 hintText: '비밀번호를 입력하세요',
                 obscureText: true,
@@ -156,7 +190,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
+              // 비밀번호 확인 입력란
               VTraceTextField(
+                label: '비밀번호 확인',
                 controller: _confirmPasswordController,
                 hintText: '비밀번호를 다시 입력하세요',
                 obscureText: true,
@@ -166,21 +202,36 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     signUpState.confirmPasswordError == null,
                 onChanged: viewModel.onConfirmPasswordChanged,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
 
+              // 회원가입 버튼
               VTraceButton(
                 text: '회원가입',
                 isLoading: signUpState.isLoading,
                 onPressed: signUpState.isValid ? _attemptSignUp : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              TextButton(
-                onPressed: () {
-                  context.go('/login');
-                },
-                child: const Text('이미 계정이 있으신가요? 로그인하세요'),
+              // 하단 로그인 이동 유도
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('이미 계정이 있으신가요? '),
+                  GestureDetector(
+                    onTap: () {
+                      context.go('/login');
+                    },
+                    child: Text(
+                      '로그인하세요',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../feature/home/presentation/widgets/home_screen.dart';
 import '../feature/auth/presentation/widgets/login_screen.dart';
 import '../feature/auth/presentation/widgets/signup_screen.dart';
+import '../feature/auth/presentation/widgets/forgot_password_screen.dart';
 import '../feature/pay/presentation/widgets/pay_screen.dart';
 
 part 'app_router.g.dart';
@@ -21,6 +22,10 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(path: '/pay', builder: (context, state) => const PayScreen()),
     ],

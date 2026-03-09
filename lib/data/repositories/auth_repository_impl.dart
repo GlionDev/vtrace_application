@@ -15,7 +15,7 @@ class AuthRepositoryImpl implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 1500));
 
     // 정해진 테스트 계정 체크
-    if (email != 'Test@Test' || password != 'aaaaaaaaA!') {
+    if (email != 'T@T' || password != 'aA1!') {
       throw NetworkException("이메일 혹은 비밀번호가 일치하지 않습니다.", 401);
     }
 

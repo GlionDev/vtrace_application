@@ -2,6 +2,117 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-03-09 (스플래시 화면 테마 대응 보완 - 검은색 고정)
+
+### 변경 사항
+- **다크/라이트 모드 통합 설정**: `pubspec.yaml`의 `flutter_native_splash` 설정에 `color_dark` 속성을 추가하고, `android_12` 하위에도 동일하게 `color`, `color_dark`, `icon_background_color_dark` 속성을 명시적으로 전부 `#000000`(검정)으로 지정했습니다.
+- **스플래시 에셋 갱신**: `dart run flutter_native_splash:create` 명령어를 다시 실행하여 Android 12+ 를 포함한 네이티브 환경에 변경된 설정을 덮어씌웠습니다.
+
+### 변경 이유
+- Android 12 이상에서 스플래시 화면 설정 시 `android_12` 전용 `color` 속성이 명시되어 있지 않거나, 시스템 테마(다크/라이트 모드)에 의해 흰색 배경이 강제 적용되는 문제를 해결하여 항상 검은색 배경을 유지하도록 하기 위함입니다.
+
+### 실행 순서
+1. `pubspec.yaml` 내 `flutter_native_splash` 블록에 속성값 일괄 수정 (검정색 명시화)
+2. `dart run flutter_native_splash:create` 재실행을 통한 설정값 적용
+3. `WORKLOG.md` 기록 최신화
+
+### 수정 혹은 추가된 파일 경로
+- `/pubspec.yaml`
+- `[Android 12+ splash 관련 리소스 xml 파일들]`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 디바이스의 시스템 설정에서 '라이트 모드'와 '다크 모드'를 각각 번갈아가며 킨 뒤, 앱을 다시 켰을 때 어느 테마에서나 스플래시 화면의 배경이 검은색(`vtrace_splash_logo`)으로 일관성 있게 표시되는지 확인합니다.
+
+---
+
+## 2026-03-09 (앱 최초 진입 스플래시 화면 연동)
+
+### 변경 사항
+- **패키지 추가**: `pubspec.yaml` 내 `dev_dependencies` 에 `flutter_native_splash` 패키지를 새로 추가했습니다.
+- **이미지 및 색상 설정**: `pubspec.yaml` 의 최하단에 `flutter_native_splash` 설정 블록을 작성하여 배경 메인 컬러를 하얀색(`#ffffff`), 이미지를 `/assets/logo/vtrace_splash_logo.png` 로 매핑했습니다. Android 12 이상 기기를 위해 `android_12` 속성 또한 지정했습니다.
+- **스플래시 파일 생성**: 터미널 명령어를 통해 네이티브 각 플랫폼(Android, iOS, Web)용 스플래시 이미지 에셋 및 설정을 빌드해 적용시켰습니다.
+
+### 변경 이유
+- 사용자 요청에 따라 기존 프로젝트에 누락되어 있던 스플래시 화면을 연동하여, 앱 실행 시 나타나는 초기 화면(vtrace_splash_logo.png)을 일관성있게 보여주기 위함입니다. 
+
+### 실행 순서
+1. `pubspec.yaml` 파일 내 `flutter_native_splash` 의존성 및 설정 블록 추가
+2. `flutter pub get` 커맨드로 패키지 다운로드
+3. `dart run flutter_native_splash:create` 명령어로 네이티브 에셋 자동 생성
+4. `WORKLOG.md` 에 작업 내용 기술
+
+### 수정 혹은 추가된 파일 경로
+- `/pubspec.yaml`
+- `[Android/iOS 네이티브 관련 시스템 에셋 및 설정 내부 변경 사항들]`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 디바이스나 에뮬레이터에서 앱을 완전히 종료했다가 다시 실행하여 첫 구동 시(흰색 배경에 앱 로고가 표시되는 스플래시 화면)가 지정한 `vtrace_splash_logo.png` 로 출력되는지 확인합니다.
+
+---
+
+## 2026-03-09 (회원가입 비밀번호 정규식 숫자 조건 추가)
+
+### 변경 사항
+- **비밀번호 검증 강화**: `SignUpViewModel` 내부의 `onPasswordChanged` 유효성 검사 로직에 숫자(`[0-9]`)가 반드시 포함되어야 한다는 요건(`hasDigit`)을 추가했습니다.
+- **안내 문구 수정**: 유효성에 어긋날 시 표시되는 안내 텍스트를 "대소문자, 숫자, 특수문자 포함 10자리 이상으로 입력해주세요"로 갱신했습니다.
+
+### 변경 이유
+- 사용자 요청에 따라 계정 보안을 강화하기 위해 회원가입 시 더 엄격한 비밀번호 조합(대/소/숫/특)을 요구하도록 정책을 변경했기 때문입니다.
+
+### 실행 순서
+1. `signup_viewmodel.dart` 내 정규식 판별부에 `hasDigit` 플래그 및 구문 추가
+2. 에러 알림(`err`) 문자열값 수정
+3. `WORKLOG.md` 업데이트 기록
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 회원가입 화면에서 대문자, 소문자, 특수문자 10자리 이상만 적은 경우(예: `TestPassword!`) 에러가 유지되는지 확인합니다.
+- 이후 숫자(예: `1`)를 추가했을 때 에러 표시가 사라지고 폼 유효 상태로 전환되는지 확인합니다.
+
+---
+
+## 2026-03-09 (인증 UI 레이아웃 개편 및 비밀번호 찾기 기능 추가)
+
+### 변경 사항
+- **공통 컴포넌트 업데이트**: `VTraceTextField` 위젯에 텍스트 필드 상단 라벨(`label`) 속성을 추가 지원하여 레퍼런스 디자인과 동일한 계층 구조를 띄게 했습니다.
+- **로그인 화면 (Login Screen) 디자인 개편**: 기존 컴포넌트 유지 하단에 상단 타이틀("환영합니다!"), 부제목, '자동로그인' 체크박스 기능 연동 및 '비밀번호를 잊으셨나요?' 바로가기 버튼 등을 새롭게 추가, 배치했습니다. (레퍼런스의 소셜 로그인 등 불필요한 기능은 제외했습니다.)
+- **회원가입 화면 (Sign Up Screen) 디자인 개편**: "닉네임" 입력란을 신규 추가하고 해당 상태를 `SignUpViewModel` 로직과 연동했습니다. 폼 전체 레이아웃을 레퍼런스 이미지의 수직 스페이싱에 맞추어 재배치했습니다.
+- **비밀번호 찾기 (Forgot Password) 신규 화면**: `ForgotPasswordScreen` 과 상태를 제어하는 `ForgotPasswordViewModel` 을 생성하여, 이메일 입력을 통해 인증 코드를 발송하는 프로토타입 UI 및 동작을 연동했습니다.
+
+### 변경 이유
+- 사용자가 제안한 UI/UX 레퍼런스 이미지의 레이아웃 배치를 수용하고, 기존의 로그인/회원가입 화면을 보다 통일성 있고 직관적인 형태로 개선하기 위함입니다.
+- 레퍼런스의 피드백에 맞춰 타이틀 및 버튼 라벨을 모두 100% 한국어로 번역 반영했으며, 현재 제공하지 않는 소셜 로그인/계속하기 구분선은 추가하지 않았습니다.
+
+### 실행 순서
+1. `task.md` 에 인증 화면 레이아웃 작업 명세화
+2. `VTraceTextField` 컴포넌트에 상단 Text 출력 옵션 추가
+3. `LoginScreen` 및 `SignUpScreen` 하위 레이아웃을 Column, Row를 적절히 융합하여 전체 재배치 후 내부 상태(State) 로직 보강
+4. `forgot_password_screen.dart` / `forgot_password_viewmodel.dart` 신규 생성 및 설계
+5. `app_router.dart` 에 `/forgot-password` 경로 할당 및 `build_runner` 를 통한 Riverpod 제네레이터 갱신
+6. 에러나 린트 경고가 없는지 `flutter analyze` 명령어로 분석 후 `WORKLOG.md` 업데이트
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/core/design_system/widgets/vtrace_textfield.dart`
+- `/lib/feature/auth/presentation/widgets/login_screen.dart`
+- `/lib/feature/auth/presentation/viewmodel/login_viewmodel.dart`
+- `/lib/feature/auth/presentation/widgets/signup_screen.dart`
+- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart`
+- `/lib/feature/auth/presentation/widgets/forgot_password_screen.dart` [NEW]
+- `/lib/feature/auth/presentation/viewmodel/forgot_password_viewmodel.dart` [NEW]
+- `/lib/router/app_router.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 앱의 첫 화면(로그인 창)에서 타이틀과 "자동로그인", "비밀번호를 잊으셨나요?" 배치를 확인하고, 하단의 가입하기 전환 시 닉네임 필드와 레이아웃을 확인합니다.
+- 로그인 창의 "비밀번호를 잊으셨나요?" 버튼을 클릭하면 새로 디자인된 이메일 입력 화면으로 정상 진입하는지 점검합니다.
+
+---
+
 ## 2026-03-09 (앱 최초 실행 시 들어온 공유 링크를 TextField 에 자동 입력하도록 개선)
 
 ### 변경 사항

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../viewmodel/home_viewmodel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../../core/design_system/widgets/vtrace_textfield.dart';
+import '../../../../core/design_system/widgets/vtrace_button.dart';
+import '../../../../main.dart'; // sharedTextProvider 접근용
 
 /// 앱의 메인 진입 후 처음 표시되는 홈 화면 위젯입니다.
 class HomeScreen extends ConsumerStatefulWidget {
@@ -28,6 +31,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ref
             .read(homeViewModelProvider.notifier)
             .setTabIndex(_tabController.index);
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initialText = ref.read(sharedTextProvider);
+      if (initialText != null && initialText.isNotEmpty) {
+        ref.read(homeViewModelProvider.notifier).handleSharedLink(initialText);
+        _linkController.text = initialText;
+        if (_tabController.index != 1) {
+          _tabController.animateTo(1);
+        }
+        ref.read(sharedTextProvider.notifier).setSharedText(null);
       }
     });
   }
@@ -115,6 +130,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final homeState = ref.watch(homeViewModelProvider);
     final viewModel = ref.read(homeViewModelProvider.notifier);
 
+    // 글로벌으로 주입되는 공유 링크(sharedTextProvider)가 변경될 때 대응하여 ViewModel 및 UI 갱신
+    ref.listen<String?>(sharedTextProvider, (previous, next) {
+      if (next != null && next.isNotEmpty) {
+        viewModel.handleSharedLink(next);
+        _linkController.text = next;
+        // 링크 수신 후 즉시 탭 1번으로 전환
+        if (_tabController.index != 1) {
+          _tabController.animateTo(1);
+        }
+        ref.read(sharedTextProvider.notifier).setSharedText(null); // 처리 후 소거
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('VTrace Home'),
@@ -122,11 +150,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
-              child: Text(
-                '무료 횟수: ${homeState.remainingCredits} / 1',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              child: GestureDetector(
+                onTap: () {
+                  context.push('/pay');
+                },
+                child: Text(
+                  homeState.remainingCredits <= 0
+                      ? '크레딧을 추가하세요'
+                      : '무료 횟수: ${homeState.remainingCredits} / 1',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -140,85 +175,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // 탭 1: 내 파일에서 가져오기
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickFile,
-                    icon: const Icon(Icons.file_upload),
-                    label: const Text('파일 가져오기 (Audio)'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      textStyle: const TextStyle(fontSize: 18),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 탭 1: 내 파일에서 가져오기
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _pickFile,
+                          icon: const Icon(Icons.file_upload),
+                          label: const Text('파일 가져오기 (Audio)'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
+                            textStyle: const TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (homeState.selectedFilePath != null)
+                          Text(
+                            '선택된 파일: ${homeState.selectedFilePath!.split('/').last}',
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  if (homeState.selectedFilePath != null)
-                    Text(
-                      '선택된 파일: ${homeState.selectedFilePath!.split('/').last}',
-                    ),
-                ],
-              ),
-            ),
-          ),
+                ),
 
-          // 탭 2: 링크로 가져오기
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: VTraceTextField(
+                // 탭 2: 링크로 가져오기
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      VTraceTextField(
                         controller: _linkController,
                         hintText: 'https:// 링크를 입력하세요',
                         onChanged: viewModel.onLinkChanged,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed:
-                            (homeState.linkInput.isNotEmpty &&
-                                !homeState.isLoading)
-                            ? () async {
-                                await viewModel.separateLink();
-                                Fluttertoast.showToast(msg: "분리 요청 완료");
-                              }
-                            : null,
-                        child: homeState.isLoading
-                            ? const CircularProgressIndicator(strokeWidth: 2)
-                            : const Text(
-                                '분리',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        '참고: 다른 앱에서 링크를 공유하여 바로 가져올 수도 있습니다.\n(해당 기능은 추후 추가 예정)',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  '참고: 다른 앱에서 링크를 공유하여 바로 가져올 수도 있습니다.\n(해당 기능은 추후 추가 예정)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+
+          // 하단 공통 분리하기 버튼
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsetsDirectional.only(start: 16.0, end: 16.0),
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+            child: VTraceButton(
+              text: '분리하기',
+              isLoading: homeState.isLoading,
+              onPressed: homeState.importType.isNotEmpty
+                  ? () async {
+                      if (homeState.remainingCredits <= 0) {
+                        Fluttertoast.showToast(msg: "사용 한도가 초과되었습니다.");
+                        return;
+                      }
+                      await viewModel.separateCommon();
+                      Fluttertoast.showToast(msg: "분리 요청 완료");
+                    }
+                  : () {
+                      Fluttertoast.showToast(msg: "분리할 파일을 선택해주세요");
+                    },
+            ),
+          ),
+          const SizedBox(height: 16), // SafeArea 하단 여백 대비
         ],
       ),
     );

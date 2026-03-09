@@ -2,6 +2,200 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-03-09 (앱 최초 실행 시 들어온 공유 링크를 TextField 에 자동 입력하도록 개선)
+
+### 변경 사항
+- **글로벌 상태 초기화 방식 변경**: `main.dart`에서 `sharedTextProvider`의 초기값을 다룰 때, 강제 `overrideWith` 대신 전역 변수 `initialSharedText`를 선언하고 `SharedTextNotifier.build()` 함수가 이를 바라보도록 반환 구조를 수정했습니다.
+- **UI 라이프사이클 갱신 (탭 자동변경 & 텍스트 필드 채우기)**: `HomeScreen`의 `initState` 내에 `addPostFrameCallback`을 할당하고, 첫 렌더링 직후 초기 공유된 링크가 있는지 확인합니다. 존재할 경우, ViewModel 상태 최신화, TextField 업데이트(`_linkController`), 그리고 즉각적인 탭 변경(`animateTo(1)`)이 이뤄지도록 보완했습니다.
+
+### 변경 이유
+- 백그라운드나 앱 종료 상태에서 운영체제의 외부 공유 인텐트로 앱이 켜졌을 경우, Riverpod Provider가 최초 생성되며 `build()`에서 null 상태로 덮어써져 텍스트 필드에 URL이 나타나지 않던 문제를 해결하기 위함입니다.
+- Stream(스트림) 청취를 통한 백그라운드 수신뿐만 아니라, 앱 초기 로딩 완료 시점에 정확히 링크가 "링크로 가져오기" 탭에 삽입되길 원한다는 사용자(UX)의 피드백을 반영했습니다.
+
+### 실행 순서
+1. `main.dart` 파일 내 `initialSharedText` 변수를 전역화 및 `build()` 연동
+2. `main.dart` 의 `ProviderScope` 의 `overrideWith` 로직 제거
+3. `home_screen.dart` 의 `initState` 에 첫 프레임 렌더 후 상태 점검 및 TextField 세팅 로직 추가
+4. 정상 동작 여부 검증용 `flutter analyze` 실행
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/main.dart`
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 앱을 완전히 종료 후 모의로 URL 외부 공유 인텐트를 전송하여 앱을 실행시켰을 때, 즉시 `링크로 가져오기` 탭으로 전환되며 TextField 에 들어온 링크가 삽입되어 있는지 확인합니다.
+
+---
+
+## 2026-03-09 (receive_sharing_intent 를 flutter_sharing_intent 로 교체)
+
+### 변경 사항
+- **공유 인텐트 라이브러리 교체**: `pubspec.yaml`에서 기존 `receive_sharing_intent` 패키지를 제거하고 `flutter_sharing_intent`로 대체했습니다.
+- **안드로이드 설정 변경**: `flutter_sharing_intent`의 권장 설정에 따라 `AndroidManifest.xml` 내 MainActivity의 `android:launchMode`를 `singleTop`에서 `singleTask`로 변경했습니다.
+- **Dart 수신 로직 수정**: `main.dart` 내부의 공유 인텐트 수신 API를 `FlutterSharingIntent` 클래스와 `SharedFile` 모델을 사용하도록 변경하고, 텍스트와 URL 데이터의 값을 가져오는 속성을 `path`에서 `value`로 수정했습니다.
+
+### 변경 이유
+- 사용자의 라이브러리 교체 요청(`receive_sharing_intent` -> `flutter_sharing_intent`)에 따라 지정된 패키지로 외부 공유 데이터를 수신하도록 마이그레이션하기 위함입니다.
+
+### 실행 순서
+1. `flutter pub remove receive_sharing_intent` 및 `flutter pub add flutter_sharing_intent` 명령어를 실행하여 패키지 의존성을 변경했습니다.
+2. `AndroidManifest.xml` 파일의 `launchMode`를 `singleTask`로 수정했습니다.
+3. `main.dart`에서 `ReceiveSharingIntent` 의존성을 모두 `FlutterSharingIntent` 로 교체하고 모델 속성에 맞게 코드를 수정했습니다.
+4. `flutter analyze` 검사를 통해 구문 오류가 없음을 확인했습니다.
+
+### 수정 혹은 추가된 파일 경로
+- `/pubspec.yaml`
+- `/android/app/src/main/AndroidManifest.xml`
+- `/lib/main.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 앱을 안드로이드 기기 또는 에뮬레이터에서 실행하고 유튜브 등 외부 앱에서 '공유' 버튼을 눌러 링크를 전달 시, 앱이 호출되고 텍스트가 정상 전달되는지 확인합니다.
+
+---
+
+## 2026-03-09 (외부 앱 URL 공유/수신 이벤트 연동 및 홈 탭 리다이렉션)
+
+### 변경 사항
+- **외부 인텐트 수신 설정**: 안드로이드 `AndroidManifest.xml` 파일 내 `MainActivity` 영역에 `<action android:name="android.intent.action.SEND" />`와 `text/plain` 데이터를 수신할 수 있도록 인텐트 필터를 추가했습니다. 이를 통해 유튜브나 웹 브라우저 등에서 '공유' 기능을 사용할 때 VTrace 앱이 표시됩니다.
+- **수집 모듈 연동**: `receive_sharing_intent` 패키지를 추가(`pubspec.yaml`)하고 `main.dart` 내에서 백그라운드나 종료 상태에서 앱이 실행될 때의 전달된 데이터(`getInitialMedia`, `getMediaStream`)를 수신하도록 로직을 구현했습니다.
+- **상태 관리 연동 및 화면 자동 갱신**: 공유된 URL 데이터를 `home_screen.dart`가 감지할 수 있도록 루트 레벨에 `NotifierProvider`(sharedTextProvider)를 두었습니다. URL이 감지되면 자동으로 `HomeViewModel`의 탭 상태를 "링크로 가져오기"로 바꾸고 입력란에 URL을 할당하도록 구현했습니다.
+
+### 변경 이유
+- 사용자가 유튜브 등에서 음원 추출 대상 영상 링크를 직접 복사하여 앱에 붙여넣는 수고를 덜고, 타 앱에서 곧바로 앱을 실행시킴과 동시에 입력 처리를 완료하여 UX(User Experience)를 향상시키기 위함입니다. 
+- 복잡한 `Riverpod` 스토어와 외부 라이프사이클 이벤트 간의 상태 일치 문제를 방지하고자 루트(상위)에서 초기 이벤트를 캐치하고 `ref.listen`을 사용하여 반응형으로 처리했습니다.
+
+### 실행 순서
+1. `AndroidManifest.xml` 내 `intent-filter`에 공유 인텐트 권한을 추가했습니다.
+2. `pubspec.yaml` 파일에 `receive_sharing_intent` 플러그인을 추가했습니다.
+3. `home_viewmodel.dart`에 `handleSharedLink(String url)` 메소드를 구현하여 입력값을 변경하고 탭을 이동시키는 로직을 구성했습니다.
+4. `main.dart`에서 `SharedTextNotifier` 전역 상태를 선언 후 수신된 인텐트 값을 업데이트하도록 설정했습니다.
+5. `home_screen.dart`가 해당 상태를 `ref.listen`으로 감지 시, `TabController.animateTo`를 통해 탭을 강제 이동하고 입력창 컨트롤러의 텍스트 프로퍼티를 동기화했습니다.
+
+### 수정 혹은 추가된 파일 경로
+- `/android/app/src/main/AndroidManifest.xml`
+- `/pubspec.yaml`
+- `/lib/main.dart`
+- `/lib/feature/home/presentation/viewmodel/home_viewmodel.dart`
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/docs/WORKLOG.md`
+
+---
+
+## 2026-03-09 (공통 버튼 `VTraceButton` 로딩 상태 인터페이스 개선)
+
+### 변경 사항
+- **VTraceButton 확장**: `VTraceButton` 클래스 내부에 `isLoading` 플래그를 추가했습니다.
+- **로딩 시 UI 변경**: `isLoading`이 `true`일 때 버튼의 `onPressed` 콜백을 비활성화(dim 처리 효과 달성)하고, 텍스트 대신 `CircularProgressIndicator`가 표시되도록 디자인 시스템을 리팩터링했습니다.
+- **화면 적용**: 앱 내에서 `VTraceButton`을 사용하는 기존의 모든 위젯(`SignUpScreen`, `LoginScreen`, `HomeScreen`, `PayScreen`)에서 삼항 연산자를 통한 외부 프로그레스 바 래핑 로직을 제거하고, 내부 `isLoading` 파라미터 맵핑으로 대체했습니다.
+
+### 변경 이유
+- 여러 화면(회원가입, 로그인, 홈, 결제)에서 공통된 버튼 컴포넌트를 사용하고 있지만, 로딩 상태를 처리하기 위해 각 화면에서 중복된 삼항 연산 로직을 작성하고 있었습니다. 이를 `VTraceButton`으로 응집하여 코드의 가독성을 높이고 향후 디자인 시스템 유지보수를 용이하게 하기 위함입니다.
+
+### 실행 순서
+1. `vtrace_button.dart` 내부에 `isLoading` 변수를 추가하고 `build()`에 프로그레스 바 렌더링 조건을 반영했습니다.
+2. `pay_screen.dart`, `home_screen.dart`, `signup_screen.dart`, `login_screen.dart`에서 `VTraceButton` 외부를 감쌌던 조건문(`isLoading ? ... : VTraceButton()`)을 제거하고 `isLoading: ...` 인자를 주입했습니다.
+3. 린트(flutter analyze) 및 포맷터(dart format) 검사를 통해 구문 오류가 없음을 확인했습니다.
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/core/design_system/widgets/vtrace_button.dart`
+- `/lib/feature/pay/presentation/widgets/pay_screen.dart`
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/auth/presentation/widgets/signup_screen.dart`
+- `/lib/feature/auth/presentation/widgets/login_screen.dart`
+- `/docs/WORKLOG.md`
+ 
+---
+
+## 2026-03-09 (인앱 결제 화면 및 로직 기본 뼈대 연동)
+
+### 변경 사항
+- **패키지 추가**: `pubspec.yaml`에 `in_app_purchase`를 도입했습니다.
+- **결제 라우트 설정**: `app_router.dart`에 `/pay` 라우트를 신설하고, 홈 화면의 상단 크레딧 텍스트를 터치할 경우 결제 화면으로 진입할 수 있게 연결했습니다.
+- **결제 뷰모델 구축**: `PayViewModel`과 `PayState`를 새롭게 추가해 결제 스트림(`purchaseStream`) 구독 및 결제 상품(`selectedProductId`) 선택 상태를 중앙에서 제어하도록 설계했습니다.
+- **결제 UI 추가**: `PayScreen`을 생성하여 10, 35, 65 Token(각 1000, 3000, 5000원) 라디오 목록 버튼과 함께, 사용자가 구매하기 버튼(`VTraceButton`과 로딩 스피너 활용)을 누를 때 스토어 결제 창이 뜨도록 연동해 두었습니다. 
+
+### 변경 이유
+- 문서화된 클라이언트 부분 결제 MVP 기능 요구사항(`pay_requirement.md`)을 Riverpod 기반 Clean Architecture로 만족하기 위함입니다. 백엔드 검증 로직은 추후 추가될 예정이나 기기 내 결제 진입 자체는 가능하도록 Mock 연동했습니다.
+
+### 실행 순서
+1. 패키지 의존성 최신화 (`flutter pub add in_app_purchase`)
+2. `pay_viewmodel.dart`를 통해 `in_app_purchase` Stream 처리 및 구매 요청 함수 구현
+3. `pay_screen.dart` 추가로 상품 3개 선택할 수 있게 Radio UI 구성
+4. `app_router.dart`에 Path 추가 및 `home_screen.dart`의 터치 리스너 경로 할당 (-> `/pay`)
+5. Viewmodel 코드 생성기 (`build_runner`) 재호출하여 Riverpod AutoDispose 제네릭 Provider 맵핑 및 제반 에러 조치
+6. `WORKLOG.md` 업데이트
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/feature/pay/presentation/viewmodel/pay_viewmodel.dart` [NEW]
+- `/lib/feature/pay/presentation/widgets/pay_screen.dart` [NEW]
+- `/lib/router/app_router.dart`
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 홈 화면 우측 상단 텍스트(`무료 횟수 ...`)를 터치 시 팝업 아이콘과 함께 결제 상품 선택 화면으로 정상 이동하는지 확인합니다.
+- `PayScreen`에서 라디오 버튼을 골라 '구매하기' 터치 시 `isAvailable()`이 실패하거나 호스팅 지연 Toast가 팝업되며 Mock 흐름이 유지되는지 체크합니다.
+
+---
+
+## 2026-03-09 (홈 화면 상단 크레딧 상태 표시 변경)
+
+### 변경 사항
+- **상단 크레딧 표시 텍스트 변경**: 홈 화면 우상단의 "무료 횟수" 영역에서, 남은 크레딧(`remainingCredits`)이 0일 경우 "크레딧을 추가하세요" 텍스트가 표시되도록 조건부 렌더링을 추가했습니다.
+- **클릭 이벤트 선행 적용**: 향후 결제(Pay) 화면으로의 이동을 지원하기 위해 해당 텍스트를 `GestureDetector`로 감싸고, 임시 Toast 메시지를 출력하도록 변경했습니다.
+
+### 변경 이유
+- `pay_requirement.md`에 정의된 "홈 화면에서 상단 남은 Token 클릭 시 진입" 요구사항을 지원하고, 사용자가 크레딧 소진 상태를 명확히 인지하게 돕기 위함입니다.
+
+### 실행 순서
+1. `HomeScreen` AppBar `actions` 내 `Text` 위젯 조건 추가
+2. 탭 이벤트 및 향후 라우팅 처리를 위해 `GestureDetector`로 래핑
+3. `WORKLOG.md` 업데이트
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 탭 하단의 분리 버튼 등을 이용해 잔여 크레딧이 0이 되었을 때 상단 텍스트가 "크레딧을 추가하세요"로 변경되는지 확인합니다.
+- 해당 영역을 탭했을 때 임시 Toast 메시지가 제대로 표시되는지 확인합니다.
+
+---
+
+## 2026-03-09 (홈 화면 탭 하단 공통 분리하기 버튼 적용 및 VTraceButton 도입)
+
+### 변경 사항
+- **공통 분리 버튼 추가**: 기존 "링크로 가져오기" 탭 내부에 존재하던 "분리" 버튼을 제거하고, 탭 구조(`TabBarView`) 하단에 가로를 꽉 채우는 공통 "분리하기" 버튼을 추가했습니다. 이때 디자인 시스템 공통 위젯인 `VTraceButton`을 재사용했습니다.
+- **VTraceButton 로딩 상태 추가**: `VTraceButton` 컴포넌트가 로딩 상태(`isLoading`)를 지원할 수 있도록 속성 및 UI(`CircularProgressIndicator`)를 추가 보완했습니다.
+- **가져온 파일 타입 관리 변수 추가**: `home_viewmodel.dart`의 `HomeState`에 `importType` 변수(String)를 추가하여, 내 파일에서 오디오 파일을 가져왔을 때는 `'file'`, 링크 입력을 완료했을 때는 `'link'`로 타입을 지정하고 관리하도록 변경했습니다. 
+
+### 변경 이유
+- 사용자가 직관적으로 여러 방식(파일, 링크)을 통해 가져온 대상을 하단의 일관된 버튼(분리하기)을 눌러 처리할 수 있도록 UX를 개선하기 위함입니다.
+- 분리 작업을 수행할 때 현재 가져온 소스의 타입(파일인지 링크인지)을 뷰모델 수준에서 명확히 구분하여 처리하기 위함입니다.
+
+### 실행 순서
+1. `HomeState`에 `importType` 변수 추가 및 기본값 정의
+2. `HomeViewModel` 내의 파일 가져오기 및 링크 입력 액션 시 `importType`을 각각 `'file'`, `'link'`로 업데이트하도록 수정
+3. 탭 간 이동 시 탭 상태에 맞춰 `importType` 재설정 로직 추가
+4. 기존의 `separateLink` 메서드를 `separateCommon`으로 변경하여 공통 로직으로 통합
+5. `HomeScreen`에 위치한 기존 탭 내부의 "분리" 버튼 제거
+6. `HomeScreen` 하단(`TabBarView` 외부)에 공통 "분리하기" 버튼 추가 및 상하 패딩 8, 좌우 마진 16 적용
+7. `WORKLOG.md` 에 변경 이력 추가
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/feature/home/presentation/viewmodel/home_viewmodel.dart`
+- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- 탭 하단에 "분리하기" 버튼이 가로로 꽉 차게 잘 나타나는지 확인합니다 (좌우 마진 16, 상하 패딩 8 적용).
+- 1번째 탭에서 파일을 선택한 후 버튼을 눌렀을 때 분리 요청 완료 Toast 메시지가 정상적으로 보이는지 확인합니다.
+- 2번째 탭에서 링크를 입력한 후 버튼을 눌렀을 때 분리 요청 완료 Toast 메시지가 정상적으로 보이는지 확인합니다.
+
+---
+
 ## 2026-03-06 (로그인 비밀번호 힌트 제거 및 홈 화면 권한 요청 로직 보완)
 
 ### 변경 사항

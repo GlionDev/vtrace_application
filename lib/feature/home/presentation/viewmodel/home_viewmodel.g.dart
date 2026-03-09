@@ -44,7 +44,7 @@ final class HomeViewModelProvider
   }
 }
 
-String _$homeViewModelHash() => r'68c9e446ccabc68e07dca5020b8c895d8c656a9b';
+String _$homeViewModelHash() => r'788b1a356b352914e2e1fbaf6f3485de547bc4d9';
 
 /// 홈 화면의 사용자 입력 및 로직을 처리하는 뷰모델입니다.
 

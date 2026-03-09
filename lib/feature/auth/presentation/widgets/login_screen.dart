@@ -91,12 +91,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 32),
 
               // 로그인 버튼 (진행 중일 땐 로딩 인디케이터, 아니면 버튼 활성화 처리)
-              loginState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : VTraceButton(
-                      text: 'Login',
-                      onPressed: loginState.isValid ? _attemptLogin : null,
-                    ),
+              VTraceButton(
+                text: 'Login',
+                isLoading: loginState.isLoading,
+                onPressed: loginState.isValid ? _attemptLogin : null,
+              ),
               const SizedBox(height: 16),
 
               // 회원가입 페이지 이동 유도 항목

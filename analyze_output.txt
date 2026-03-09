@@ -1,0 +1,1 @@
+﻿ERROR|COMPILE_TIME_ERROR|UNDEFINED_FUNCTION|D:\\Personal\\vtrace_application\\lib\\main.dart|9|28|13|The function 'StateProvider' isn't defined.

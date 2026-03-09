@@ -168,12 +168,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 32),
 
-              signUpState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : VTraceButton(
-                      text: '회원가입',
-                      onPressed: signUpState.isValid ? _attemptSignUp : null,
-                    ),
+              VTraceButton(
+                text: '회원가입',
+                isLoading: signUpState.isLoading,
+                onPressed: signUpState.isValid ? _attemptSignUp : null,
+              ),
               const SizedBox(height: 16),
 
               TextButton(

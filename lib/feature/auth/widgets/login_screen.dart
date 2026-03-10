@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../../../core/design_system/widgets/vtrace_button.dart';
-import '../../../../core/design_system/widgets/vtrace_textfield.dart';
+import '../../../core/design_system/widgets/vtrace_button.dart';
+import '../../../core/design_system/widgets/vtrace_textfield.dart';
 import '../viewmodel/login_viewmodel.dart';
 
 /// 사용자가 로그인 정보를 입력하고 인증을 요청하는 로그인 화면 위젯입니다.
@@ -165,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text('계정이 없으신가요? '),
                   GestureDetector(
                     onTap: () {
-                      context.go('/signup');
+                      context.push('/signup');
                     },
                     child: Text(
                       '여기를 눌러 가입하세요',

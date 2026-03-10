@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../../../core/design_system/widgets/vtrace_button.dart';
-import '../../../../core/design_system/widgets/vtrace_textfield.dart';
+import '../../../core/design_system/widgets/vtrace_button.dart';
+import '../../../core/design_system/widgets/vtrace_textfield.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
 /// 사용자가 계정 정보를 입력하여 회원가입을 요청하는 화면 위젯입니다.

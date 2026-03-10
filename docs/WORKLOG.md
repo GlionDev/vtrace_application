@@ -2,6 +2,52 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-03-10 (패키지 구조 변경)
+
+### 변경 사항
+- **Android 패키지 변경** : `com.glion.vtrace_application` -> `com.glion.vtrace`
+- **feature 폴더 구조 정리** : `presentation` 이라는 의미 없는 폴더 제거
+
+### 실행 순서
+1. `android/app/build.gradle` 파일 내 `applicationId`, `namespace` 수정
+2. `android/app/src/main/kotlin/com/glion/vtrace_application` 폴더명 변경
+3. `feature` 폴더 내 `presentation` 폴더 제거
+4. `WORKLOG.md` 에 작업 내용 기술
+
+### 수정 혹은 추가된 파일 경로
+- `/android/app/build.gradle`
+- `/android/app/src/main/kotlin/com/glion/vtrace_application/MainActivity.kt`
+- `/feature`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- `flutter analyze` 실행 시 에러가 없는지 확인
+- 앱 실행 시 정상적으로 라우팅 처리가 이루어지는지 확인
+
+## 2026-03-10 (appRouterProvider 생성 누락 버그 수정)
+
+### 변경 사항
+- **part 선언 추가**: `lib/router/app_router.dart` 파일에 `part 'app_router.g.dart';` 선언을 추가했습니다.
+- **코드 재생성**: `dart run build_runner build -d` 명령어를 실행하여 Riverpod 제네레이터가 `appRouterProvider` 코드를 정상적으로 생성하도록 했습니다.
+
+### 변경 이유
+- `app_router.dart` 내에서 `@riverpod` 어노테이션을 사용 중이나, `part` 지시어가 누락되어 코드 제네레이터가 `.g.dart` 파일을 해당 라이브러리의 일부로 인식/생성하지 못했고, 이로 인해 `main.dart` 등에서 `appRouterProvider` 심볼을 찾을 수 없는 빌드 오류가 발생했기 때문입니다.
+
+### 실행 순서
+1. `app_router.dart` 파일 상단에 `part 'app_router.g.dart';` 추가
+2. `dart run build_runner build -d` 실행
+3. `WORKLOG.md` 에 작업 내용 기술
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/router/app_router.dart`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- `flutter analyze` 또는 IDE에서 `main.dart`의 `appRouterProvider` 참조 에러가 사라진 것을 확인합니다.
+- 앱 실행 시 정상적으로 라우팅 처리가 이루어지는지 확인합니다.
+
+---
+
 ## 2026-03-09 (오디오 권한 외 불필요한 미디어 권한 제거)
 
 ### 변경 사항
@@ -88,7 +134,7 @@
 3. `WORKLOG.md` 업데이트 기록
 
 ### 수정 혹은 추가된 파일 경로
-- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart`
+- `/lib/feature/auth/viewmodel/signup_viewmodel.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -119,12 +165,12 @@
 
 ### 수정 혹은 추가된 파일 경로
 - `/lib/core/design_system/widgets/vtrace_textfield.dart`
-- `/lib/feature/auth/presentation/widgets/login_screen.dart`
-- `/lib/feature/auth/presentation/viewmodel/login_viewmodel.dart`
-- `/lib/feature/auth/presentation/widgets/signup_screen.dart`
-- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart`
-- `/lib/feature/auth/presentation/widgets/forgot_password_screen.dart` [NEW]
-- `/lib/feature/auth/presentation/viewmodel/forgot_password_viewmodel.dart` [NEW]
+- `/lib/feature/auth/widgets/login_screen.dart`
+- `/lib/feature/auth/viewmodel/login_viewmodel.dart`
+- `/lib/feature/auth/widgets/signup_screen.dart`
+- `/lib/feature/auth/viewmodel/signup_viewmodel.dart`
+- `/lib/feature/auth/widgets/forgot_password_screen.dart` [NEW]
+- `/lib/feature/auth/viewmodel/forgot_password_viewmodel.dart` [NEW]
 - `/lib/router/app_router.dart`
 - `/docs/WORKLOG.md`
 
@@ -152,7 +198,7 @@
 
 ### 수정 혹은 추가된 파일 경로
 - `/lib/main.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -209,8 +255,8 @@
 - `/android/app/src/main/AndroidManifest.xml`
 - `/pubspec.yaml`
 - `/lib/main.dart`
-- `/lib/feature/home/presentation/viewmodel/home_viewmodel.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/viewmodel/home_viewmodel.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ---
@@ -232,10 +278,10 @@
 
 ### 수정 혹은 추가된 파일 경로
 - `/lib/core/design_system/widgets/vtrace_button.dart`
-- `/lib/feature/pay/presentation/widgets/pay_screen.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
-- `/lib/feature/auth/presentation/widgets/signup_screen.dart`
-- `/lib/feature/auth/presentation/widgets/login_screen.dart`
+- `/lib/feature/pay/widgets/pay_screen.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
+- `/lib/feature/auth/widgets/signup_screen.dart`
+- `/lib/feature/auth/widgets/login_screen.dart`
 - `/docs/WORKLOG.md`
  
 ---
@@ -260,10 +306,10 @@
 6. `WORKLOG.md` 업데이트
 
 ### 수정 혹은 추가된 파일 경로
-- `/lib/feature/pay/presentation/viewmodel/pay_viewmodel.dart` [NEW]
-- `/lib/feature/pay/presentation/widgets/pay_screen.dart` [NEW]
+- `/lib/feature/pay/viewmodel/pay_viewmodel.dart` [NEW]
+- `/lib/feature/pay/widgets/pay_screen.dart` [NEW]
 - `/lib/router/app_router.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -287,7 +333,7 @@
 3. `WORKLOG.md` 업데이트
 
 ### 수정 혹은 추가된 파일 경로
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -317,8 +363,8 @@
 7. `WORKLOG.md` 에 변경 이력 추가
 
 ### 수정 혹은 추가된 파일 경로
-- `/lib/feature/home/presentation/viewmodel/home_viewmodel.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/viewmodel/home_viewmodel.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -346,8 +392,8 @@
 5. `WORKLOG.md` 에 변경 이력 추가
 
 ### 수정 혹은 추가된 파일 경로
-- `/lib/feature/auth/presentation/viewmodel/login_viewmodel.dart`
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/auth/viewmodel/login_viewmodel.dart`
+- `/lib/feature/home/widgets/home_screen.dart`
 - `/docs/WORKLOG.md`
 
 ### 검증 방법
@@ -380,8 +426,8 @@
 ### 수정 혹은 추가된 파일 경로
 - `/pubspec.yaml`
 - `/android/app/src/main/AndroidManifest.xml`
-- `/lib/feature/home/presentation/viewmodel/home_viewmodel.dart` [NEW]
-- `/lib/feature/home/presentation/widgets/home_screen.dart`
+- `/lib/feature/home/viewmodel/home_viewmodel.dart` [NEW]
+- `/lib/feature/home/widgets/home_screen.dart`
 
 ### 검증 방법
 - `flutter run` 으로 실행 후 홈 화면 상단의 크레딧 문구와 2개의 탭 내비게이션 전환이 정상 동작하는지 확인합니다.
@@ -408,9 +454,9 @@
 
 ### 수정 혹은 추가된 파일 경로
 - `/lib/data/repositories/auth_repository_impl.dart`
-- `/lib/feature/auth/presentation/widgets/login_screen.dart`
-- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart`
-- `/lib/feature/auth/presentation/widgets/signup_screen.dart`
+- `/lib/feature/auth/widgets/login_screen.dart`
+- `/lib/feature/auth/viewmodel/signup_viewmodel.dart`
+- `/lib/feature/auth/widgets/signup_screen.dart`
 
 ### 검증 방법
 - 앱을 실행하여 로그인 화면에서 `Test@Test` / `aaaaaaaaA!` 로 로그인 시 정상동작 여부 확인, 타 계정 시도 시 에러 Toast 확인.
@@ -466,10 +512,10 @@
 - `/lib/domain/models/auth_user.dart` [NEW]
 - `/lib/domain/repositories/auth_repository.dart` [NEW]
 - `/lib/data/repositories/auth_repository_impl.dart` [NEW]
-- `/lib/feature/auth/presentation/viewmodel/login_viewmodel.dart` [NEW]
-- `/lib/feature/auth/presentation/widgets/login_screen.dart` [NEW]
-- `/lib/feature/auth/presentation/viewmodel/signup_viewmodel.dart` [NEW]
-- `/lib/feature/auth/presentation/widgets/signup_screen.dart` [NEW]
+- `/lib/feature/auth/viewmodel/login_viewmodel.dart` [NEW]
+- `/lib/feature/auth/widgets/login_screen.dart` [NEW]
+- `/lib/feature/auth/viewmodel/signup_viewmodel.dart` [NEW]
+- `/lib/feature/auth/widgets/signup_screen.dart` [NEW]
 - `/lib/router/app_router.dart`
 - `/pubspec.yaml`
 
@@ -507,7 +553,7 @@
 - `/lib/core/network/client/interceptors.dart` [NEW]
 - `/lib/core/network/client/dio_client.dart` [NEW]
 - `/lib/core/network/di/network_module.dart` [NEW]
-- `/lib/feature/home/presentation/widgets/home_screen.dart` [NEW]
+- `/lib/feature/home/widgets/home_screen.dart` [NEW]
 - `/lib/router/app_router.dart` [NEW]
 - `/android/app/src/main/AndroidManifest.xml`
 - `/docs/README.md` [NEW]

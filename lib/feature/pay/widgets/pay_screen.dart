@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../viewmodel/pay_viewmodel.dart';
-import '../../../../core/design_system/widgets/vtrace_button.dart';
+import '../../../core/design_system/widgets/vtrace_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 /// 앱 내에서 크레딧 결제를 수행하기 위한 화면입니다.

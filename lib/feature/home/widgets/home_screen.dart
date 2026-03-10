@@ -5,9 +5,9 @@ import '../viewmodel/home_viewmodel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../../../core/design_system/widgets/vtrace_textfield.dart';
-import '../../../../core/design_system/widgets/vtrace_button.dart';
-import '../../../../main.dart'; // sharedTextProvider 접근용
+import '../../../core/design_system/widgets/vtrace_textfield.dart';
+import '../../../core/design_system/widgets/vtrace_button.dart';
+import '../../../main.dart'; // sharedTextProvider 접근용
 
 /// 앱의 메인 진입 후 처음 표시되는 홈 화면 위젯입니다.
 class HomeScreen extends ConsumerStatefulWidget {

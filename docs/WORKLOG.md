@@ -2,6 +2,32 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-03-10 (안드로이드 디버그/릴리즈 빌드 환경 분리)
+
+### 변경 사항
+- **디버그용 Application ID 분리**: 안드로이드 디버그 빌드(`flutter run --debug` 등) 시, 고유 패키지명(Application ID) 뒤에 `.dev`가 붙도록 `build.gradle.kts`를 수정했습니다. (예: `com.glion.vtrace_application.dev`)
+- **디버그용 앱 이름(Label) 분리**: `AndroidManifest.xml`의 앱 이름을 하드코딩에서 `${appName}` 플레이스홀더 변수로 치환하고, `build.gradle.kts`에서 디버그 빌드 시 "VTrace_dev", 기본/릴리즈 빌드 시 "VTrace"가 주입되도록 수정했습니다.
+
+### 변경 이유
+- 개발 및 테스트 과정에서 로컬 디버그용 버전을 설치할 때마다 기존 폰에 설치되어 있던 내부 테스트/정식 릴리즈 버전이 덮어씌워지거나 충돌하는 불편함을 없애기 위함입니다. 이제 디버그 앱과 릴리즈 앱을 한 폰에 동시에 설치하여 나란히 두고 테스트할 수 있습니다.
+
+### 실행 순서
+1. `android/app/src/main/AndroidManifest.xml` 의 `<application android:label="VTrace">` 부분을 매니페스트 플레이스홀더 값인 `"${appName}"` 으로 대체
+2. `android/app/build.gradle.kts` 의 `defaultConfig` 내부에서 기본 `manifestPlaceholders["appName"] = "VTrace"` 선언
+3. `android/app/build.gradle.kts` 의 `buildTypes` 블록 안에 `getByName("debug")` 스코프를 만들어 `applicationIdSuffix = ".dev"` 와 `manifestPlaceholders["appName"] = "VTrace dev"` 추가
+4. `WORKLOG.md` 에 작업 내용 기술
+
+### 수정 혹은 추가된 파일 경로
+- `/android/app/src/main/AndroidManifest.xml`
+- `/android/app/build.gradle.kts`
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- `flutter run` 을 통해 폰에 설치해본 후, 앱 서랍(런처)에서 앱 이름이 "VTrace dev"로 정확히 나오는지 확인합니다.
+- 콘솔에서 내부 테스트 버전(AAB)을 받거나 `flutter run --release` 로 설치했을 때 원래 이름인 "VTrace" 로 기존 앱과 중복되지 않고 별개의 앱으로 설치되는지 확인합니다.
+
+---
+
 ## 2026-03-10 (인앱 결제 실제 동작 로직으로 변경)
 
 ### 변경 사항

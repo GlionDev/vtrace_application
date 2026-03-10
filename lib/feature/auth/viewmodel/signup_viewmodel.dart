@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../../../data/repositories/auth_repository_impl.dart';
 import '../../../domain/models/auth_user.dart';
 
@@ -16,6 +17,7 @@ class SignUpState {
   final int timerSeconds;
   final bool isTimerRunning;
   final bool isCodeSent;
+  final bool isCodeVerified;
 
   final bool isLoading;
   final String? errorMessage;
@@ -34,6 +36,7 @@ class SignUpState {
     this.timerSeconds = 300,
     this.isTimerRunning = false,
     this.isCodeSent = false,
+    this.isCodeVerified = false,
     this.isLoading = false,
     this.errorMessage,
     this.emailError,
@@ -47,6 +50,7 @@ class SignUpState {
       nickname.isNotEmpty &&
       email.isNotEmpty &&
       code.isNotEmpty &&
+      isCodeVerified &&
       password.isNotEmpty &&
       confirmPassword.isNotEmpty &&
       emailError == null &&
@@ -63,6 +67,7 @@ class SignUpState {
     int? timerSeconds,
     bool? isTimerRunning,
     bool? isCodeSent,
+    bool? isCodeVerified,
     bool? isLoading,
     String? errorMessage,
     String? emailError,
@@ -80,6 +85,7 @@ class SignUpState {
       timerSeconds: timerSeconds ?? this.timerSeconds,
       isTimerRunning: isTimerRunning ?? this.isTimerRunning,
       isCodeSent: isCodeSent ?? this.isCodeSent,
+      isCodeVerified: isCodeVerified ?? this.isCodeVerified,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearErrors ? null : (errorMessage ?? this.errorMessage),
       emailError: clearErrors ? null : (emailError ?? this.emailError),
@@ -113,6 +119,7 @@ class SignUpViewModel extends _$SignUpViewModel {
     _timer?.cancel();
     state = state.copyWith(
       isCodeSent: true,
+      isCodeVerified: false,
       timerSeconds: 300,
       isTimerRunning: true,
     );
@@ -121,8 +128,8 @@ class SignUpViewModel extends _$SignUpViewModel {
       if (state.timerSeconds > 0) {
         state = state.copyWith(timerSeconds: state.timerSeconds - 1);
       } else {
-        timer.cancel();
-        state = state.copyWith(isTimerRunning: false);
+        _timer?.cancel();
+        state = state.copyWith(isTimerRunning: false, isCodeSent: false);
       }
     });
   }
@@ -140,16 +147,28 @@ class SignUpViewModel extends _$SignUpViewModel {
   }
 
   void onCodeChanged(String value) {
-    // 요구사항 상 인증번호 길이나 형식에 대한 에러 메시지는 구체적이지 않지만 임의 검증 부여
-    String? err;
-    if (value.isNotEmpty && value.length < 4) {
-      err = '인증 코드를 올바르게 입력해주세요.';
+    state = state.copyWith(code: value, isCodeVerified: false);
+  }
+
+  void onVerifyCode() {
+    if (state.code == '1234') {
+      _timer?.cancel();
+      // 인증 성공 시 isCodeSent 상태는 true로 유지하여 타이머 영역 대신 '코드전송' 버튼으로 되돌아가지 않게 할 수도 있지만,
+      // 요구사항에 타이머가 끝나면 코드전송 버튼이 나타나게 하라고 했으므로 그대로 둡니다.
+      state = state.copyWith(
+        isCodeVerified: true,
+        isTimerRunning: false,
+        codeError: null,
+        clearErrors: true,
+      );
+      Fluttertoast.showToast(msg: "인증 완료되었습니다.");
+    } else {
+      state = state.copyWith(
+        codeError: '인증 코드가 일치하지 않습니다.',
+        clearErrors: false,
+        isCodeVerified: false,
+      );
     }
-    state = state.copyWith(
-      code: value,
-      codeError: err,
-      clearErrors: err == null,
-    );
   }
 
   void onPasswordChanged(String value) {

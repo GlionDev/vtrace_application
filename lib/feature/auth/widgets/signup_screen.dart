@@ -100,12 +100,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 16),
 
               // 이메일과 인증버튼
+              const Text(
+                '이메일 주소',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: VTraceTextField(
-                      label: '이메일 주소',
                       controller: _emailController,
                       hintText: '이메일을 입력하세요',
                       errorText: signUpState.emailError,
@@ -116,48 +120,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  SizedBox(
-                    height: 56, // TextField 기본 높이에 맞춤
-                    child: ElevatedButton(
-                      onPressed:
-                          (signUpState.email.isNotEmpty &&
-                              signUpState.emailError == null &&
-                              !signUpState.isLoading)
-                          ? viewModel.onSendVerificationCode
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      child: const Text(
-                        '인증',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 인증 코드 입력란 (타이머 포함)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: VTraceTextField(
-                      label: '인증 코드',
-                      controller: _codeController,
-                      hintText: '인증 코드를 입력하세요 (예: 1234)',
-                      errorText: signUpState.codeError,
-                      isSuccess:
-                          signUpState.code.isNotEmpty &&
-                          signUpState.codeError == null,
-                      onChanged: viewModel.onCodeChanged,
-                    ),
-                  ),
                   if (signUpState.isCodeSent) ...[
-                    const SizedBox(width: 8),
                     Container(
                       height: 56,
                       alignment: Alignment.center,
@@ -171,7 +134,68 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                       ),
                     ),
+                  ] else ...[
+                    SizedBox(
+                      height: 56, // TextField 기본 높이에 맞춤
+                      child: ElevatedButton(
+                        onPressed:
+                            (signUpState.email.isNotEmpty &&
+                                signUpState.emailError == null &&
+                                !signUpState.isLoading)
+                            ? viewModel.onSendVerificationCode
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                        child: const Text(
+                          '코드전송',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
                   ],
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 인증 코드 입력란 (타이머 포함)
+              const Text(
+                '인증 코드',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: VTraceTextField(
+                      controller: _codeController,
+                      hintText: '인증 코드를 입력하세요',
+                      errorText: signUpState.codeError,
+                      isSuccess: signUpState.isCodeVerified,
+                      onChanged: viewModel.onCodeChanged,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 56, // TextField 기본 높이에 맞춤
+                    child: ElevatedButton(
+                      onPressed: (signUpState.code.isNotEmpty)
+                          ? viewModel.onVerifyCode
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      child: const Text(
+                        '인증',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),

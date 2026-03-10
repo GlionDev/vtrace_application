@@ -94,16 +94,20 @@ class PayViewModel extends _$PayViewModel {
     }
 
     Set<String> kIds = <String>{state.selectedProductId};
+
+    // 결제 흐름 시작 알림
+    Fluttertoast.showToast(msg: "기기 결제 연결창 호스팅 중..");
+
     final ProductDetailsResponse response = await _inAppPurchase
         .queryProductDetails(kIds);
+
     if (response.notFoundIDs.isNotEmpty) {
       Fluttertoast.showToast(msg: "등록되지 않은 상품입니다.");
-      await Future.delayed(const Duration(seconds: 1));
-      Fluttertoast.showToast(msg: "기기 결제 연결창 호스팅 중..");
       state = state.copyWith(isLoading: false);
       return;
     }
 
+    // 실제 상품이 존재할 경우 스토어 결제창 호출
     final ProductDetails productDetails = response.productDetails.first;
     final PurchaseParam purchaseParam = PurchaseParam(
       productDetails: productDetails,

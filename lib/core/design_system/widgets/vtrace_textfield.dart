@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../color/app_color.dart';
+
 /// 앱 전반에서 공통으로 사용되는 커스텀 텍스트 필드 컨테이너입니다.
 ///
 /// VTrace 디자인 시스템에 맞춰 성공(초록 V) 및 실패(붉은 테두리 및 에러 메시지) 상태를 표현합니다.
@@ -26,6 +28,14 @@ class VTraceTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   /// [VTraceTextField] 객체를 생성합니다.
+  ///
+  /// [label] 상단 라벨 텍스트
+  /// [controller] 텍스트 컨트롤러
+  /// [hintText] 힌트 텍스트
+  /// [errorText] 에러 메시지(없으면 null)
+  /// [isSuccess] 성공 상태 여부
+  /// [obscureText] 텍스트 가림 여부
+  /// [onChanged] 텍스트 변경 콜백
   const VTraceTextField({
     super.key,
     this.label,
@@ -58,23 +68,23 @@ class VTraceTextField extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hintText,
-            // 에러 상태일 때 커스텀 붉은 테두리
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: hasError ? Colors.red : Colors.grey.shade400,
+                color: hasError ? AppColor.error : AppColor.inputBorder,
               ),
               borderRadius: BorderRadius.circular(8.0),
             ),
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                color: hasError ? Colors.red : Theme.of(context).primaryColor,
+                color: hasError
+                    ? AppColor.error
+                    : Theme.of(context).primaryColor,
                 width: 2.0,
               ),
               borderRadius: BorderRadius.circular(8.0),
             ),
-            // 우측 상태 아이콘 표시 (성공 조건인 경우)
             suffixIcon: isSuccess && !hasError
-                ? const Icon(Icons.check_circle, color: Colors.green)
+                ? const Icon(Icons.check_circle, color: AppColor.success)
                 : null,
           ),
         ),
@@ -83,7 +93,7 @@ class VTraceTextField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4.0, left: 4.0),
             child: Text(
               errorText!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              style: const TextStyle(color: AppColor.error, fontSize: 12),
             ),
           ),
       ],

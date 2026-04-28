@@ -1,10 +1,10 @@
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../feature/home/widgets/home_screen.dart';
-import '../feature/auth/widgets/login_screen.dart';
-import '../feature/auth/widgets/signup_screen.dart';
-import '../feature/auth/widgets/forgot_password_screen.dart';
-import '../feature/pay/widgets/pay_screen.dart';
+import '../feature/auth/forgot_password/forgot_password_screen.dart';
+import '../feature/auth/login/login_screen.dart';
+import '../feature/auth/signup/signup_screen.dart';
+import '../feature/home/home_screen.dart';
+import '../feature/pay/pay_screen.dart';
 
 part 'app_router.g.dart';
 

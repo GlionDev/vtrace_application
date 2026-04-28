@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+
 import '../../../core/design_system/widgets/vtrace_button.dart';
 import '../../../core/design_system/widgets/vtrace_textfield.dart';
-import '../viewmodel/login_viewmodel.dart';
+import '../../../core/notification/di/toast_module.dart';
+import 'login_viewmodel.dart';
 
 /// 사용자가 로그인 정보를 입력하고 인증을 요청하는 로그인 화면 위젯입니다.
 class LoginScreen extends ConsumerStatefulWidget {
+  /// [LoginScreen] 위젯을 생성합니다.
   const LoginScreen({super.key});
 
   @override
@@ -25,34 +27,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// 로그인 에러 시 Toast 메시지를 띄우는 헬퍼 함수입니다.
-  void _showErrorToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      fontSize: 14.0,
-    );
-  }
-
-  /// 로그인 버튼 클릭 시 로그인을 시도하는 함수입니다.
   Future<void> _attemptLogin() async {
     final viewModel = ref.read(loginViewModelProvider.notifier);
-
-    // AuthUser 객체가 반환되면 성공
     final user = await viewModel.login();
 
     if (user != null) {
       if (mounted) {
-        context.go('/home'); // 로그인 성공 시 Home으로 이동
+        context.go('/home');
       }
     } else {
-      // 오류가 있다면 상태에서 에러 메시지를 가져와 토스트 출력
       final err = ref.read(loginViewModelProvider).errorMessage;
       if (err != null) {
-        _showErrorToast(err);
+        ref.read(toastServiceProvider).showError(err);
       }
     }
   }
@@ -72,14 +58,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              // 헤더 타이틀
               const Text(
                 '환영합니다!',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              // 서브타이틀
               const Text(
                 'VTrace를 사용하기 위한 계정으로 로그인해주세요.',
                 textAlign: TextAlign.center,
@@ -87,7 +71,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 48),
 
-              // 이메일 입력 영역
               VTraceTextField(
                 label: '이메일 주소',
                 controller: _emailController,
@@ -97,7 +80,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 비밀번호 입력 영역
               VTraceTextField(
                 label: '비밀번호',
                 controller: _passwordController,
@@ -108,7 +90,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 자동로그인 & 비밀번호 찾기 행
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -150,7 +131,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // 로그인 버튼
               VTraceButton(
                 text: '로그인',
                 isLoading: loginState.isLoading,
@@ -158,7 +138,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 회원가입 페이지 이동 유도 항목
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

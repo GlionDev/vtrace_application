@@ -1,43 +1,19 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../data/di/auth_usecase_module.dart';
+import 'forgot_password_state.dart';
+
 part 'forgot_password_viewmodel.g.dart';
 
-class ForgotPasswordState {
-  final String email;
-  final bool isLoading;
-  final String? errorMessage;
-  final String? emailError;
-
-  const ForgotPasswordState({
-    this.email = '',
-    this.isLoading = false,
-    this.errorMessage,
-    this.emailError,
-  });
-
-  bool get isValid => email.isNotEmpty && emailError == null;
-
-  ForgotPasswordState copyWith({
-    String? email,
-    bool? isLoading,
-    String? errorMessage,
-    String? emailError,
-    bool clearErrors = false,
-  }) {
-    return ForgotPasswordState(
-      email: email ?? this.email,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: clearErrors ? null : (errorMessage ?? this.errorMessage),
-      emailError: clearErrors ? null : (emailError ?? this.emailError),
-    );
-  }
-}
-
+/// 비밀번호 찾기 화면의 상태와 로직을 제어하는 뷰모델입니다.
 @riverpod
 class ForgotPasswordViewModel extends _$ForgotPasswordViewModel {
   @override
   ForgotPasswordState build() => const ForgotPasswordState();
 
+  /// 이메일 입력값이 변경될 때 호출됩니다.
+  ///
+  /// [value] 변경된 이메일 텍스트
   void onEmailChanged(String value) {
     String? err;
     if (value.isNotEmpty && !value.contains('@')) {
@@ -50,6 +26,9 @@ class ForgotPasswordViewModel extends _$ForgotPasswordViewModel {
     );
   }
 
+  /// 비밀번호 재설정 코드 발송을 요청합니다.
+  ///
+  /// 반환값은 발송 요청 성공 여부입니다.
   Future<bool> sendCode() async {
     if (!state.isValid) return false;
 
@@ -60,8 +39,10 @@ class ForgotPasswordViewModel extends _$ForgotPasswordViewModel {
     );
 
     try {
-      // Mock API delay
-      await Future.delayed(const Duration(seconds: 2));
+      final useCase = await ref.read(
+        sendPasswordResetCodeUseCaseProvider.future,
+      );
+      await useCase(email: state.email);
 
       state = state.copyWith(isLoading: false);
       return true;

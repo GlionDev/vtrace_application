@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+
 import '../../../core/design_system/widgets/vtrace_button.dart';
 import '../../../core/design_system/widgets/vtrace_textfield.dart';
-import '../viewmodel/forgot_password_viewmodel.dart';
+import '../../../core/notification/di/toast_module.dart';
+import 'forgot_password_viewmodel.dart';
 
+/// 사용자가 가입한 이메일 주소로 비밀번호 재설정 코드를 발송 받는 화면입니다.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
+  /// [ForgotPasswordScreen] 위젯을 생성합니다.
   const ForgotPasswordScreen({super.key});
 
   @override
@@ -23,29 +26,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _showErrorToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      fontSize: 14.0,
-    );
-  }
-
   Future<void> _attemptSendCode() async {
     final viewModel = ref.read(forgotPasswordViewModelProvider.notifier);
     final isSuccess = await viewModel.sendCode();
 
     if (isSuccess) {
       if (mounted) {
-        Fluttertoast.showToast(msg: "해당 이메일로 코드가 전송되었습니다.");
+        ref.read(toastServiceProvider).showInfo('해당 이메일로 코드가 전송되었습니다.');
       }
     } else {
       final err = ref.read(forgotPasswordViewModelProvider).errorMessage;
       if (err != null) {
-        _showErrorToast(err);
+        ref.read(toastServiceProvider).showError(err);
       }
     }
   }
@@ -64,14 +56,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              // 헤더 타이틀
               const Text(
                 '비밀번호를 잊으셨나요?',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              // 서브타이틀
               const Text(
                 '이메일 주소를 입력하시면 인증 코드를 보내드립니다.',
                 textAlign: TextAlign.center,
@@ -79,7 +69,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 48),
 
-              // 이메일 입력 영역
               VTraceTextField(
                 label: '이메일 주소',
                 controller: _emailController,
@@ -89,7 +78,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 32),
 
-              // 코드 발송 버튼
               VTraceButton(
                 text: '코드 전송하기',
                 isLoading: forgotPasswordState.isLoading,
@@ -99,7 +87,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 하단 로그인 이동 유도
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

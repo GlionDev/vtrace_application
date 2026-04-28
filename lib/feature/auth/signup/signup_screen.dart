@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+
 import '../../../core/design_system/widgets/vtrace_button.dart';
 import '../../../core/design_system/widgets/vtrace_textfield.dart';
-import '../viewmodel/signup_viewmodel.dart';
+import '../../../core/notification/di/toast_module.dart';
+import 'signup_viewmodel.dart';
 
 /// 사용자가 계정 정보를 입력하여 회원가입을 요청하는 화면 위젯입니다.
 class SignUpScreen extends ConsumerStatefulWidget {
+  /// [SignUpScreen] 위젯을 생성합니다.
   const SignUpScreen({super.key});
 
   @override
@@ -32,15 +34,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
-  void _showErrorToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      fontSize: 14.0,
-    );
+  Future<void> _attemptVerifyCode() async {
+    final viewModel = ref.read(signUpViewModelProvider.notifier);
+    final isVerified = await viewModel.onVerifyCode();
+    if (isVerified && mounted) {
+      ref.read(toastServiceProvider).showInfo('인증 완료되었습니다.');
+    }
   }
 
   Future<void> _attemptSignUp() async {
@@ -49,13 +48,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     if (user != null) {
       if (mounted) {
-        Fluttertoast.showToast(msg: "회원가입 완료! 로그인 해주세요.");
+        ref.read(toastServiceProvider).showInfo('회원가입 완료! 로그인 해주세요.');
         context.go('/login');
       }
     } else {
       final err = ref.read(signUpViewModelProvider).errorMessage;
       if (err != null) {
-        _showErrorToast(err);
+        ref.read(toastServiceProvider).showError(err);
       }
     }
   }
@@ -74,14 +73,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              // 헤더 타이틀
               const Text(
                 '계정 생성',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              // 서브타이틀
               const Text(
                 'VTrace를 사용하기 위한 계정을 생성합니다',
                 textAlign: TextAlign.center,
@@ -89,7 +86,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 48),
 
-              // 닉네임 입력란
               VTraceTextField(
                 label: '닉네임',
                 controller: _nicknameController,
@@ -99,7 +95,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 이메일과 인증버튼
               const Text(
                 '이메일 주소',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -136,7 +131,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     ),
                   ] else ...[
                     SizedBox(
-                      height: 56, // TextField 기본 높이에 맞춤
+                      height: 56,
                       child: ElevatedButton(
                         onPressed:
                             (signUpState.email.isNotEmpty &&
@@ -160,7 +155,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 인증 코드 입력란 (타이머 포함)
               const Text(
                 '인증 코드',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -180,10 +174,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
-                    height: 56, // TextField 기본 높이에 맞춤
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: (signUpState.code.isNotEmpty)
-                          ? viewModel.onVerifyCode
+                          ? _attemptVerifyCode
                           : null,
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
@@ -200,7 +194,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 비밀번호 입력란
               VTraceTextField(
                 label: '비밀번호',
                 controller: _passwordController,
@@ -214,7 +207,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 비밀번호 확인 입력란
               VTraceTextField(
                 label: '비밀번호 확인',
                 controller: _confirmPasswordController,
@@ -228,7 +220,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 48),
 
-              // 회원가입 버튼
               VTraceButton(
                 text: '회원가입',
                 isLoading: signUpState.isLoading,
@@ -236,7 +227,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 하단 로그인 이동 유도
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

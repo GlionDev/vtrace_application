@@ -2,6 +2,153 @@
 
 최신 작업 내역이 상단에 위치합니다.
 
+## 2026-04-28 (클린 아키텍처 리펙토링 — Step 4~6: Feature 평탄화 + main 분리 + 검증)
+
+### 변경 사항
+- **Feature 폴더 평탄화**: 기존 `feature/<name>/widgets/`, `feature/<name>/viewmodel/` 하위 폴더를 모두 제거하고, 각 화면 단위로 `*_screen.dart`, `*_viewmodel.dart`, `*_state.dart` 3개 파일이 평탄하게 위치하는 구조로 정렬했습니다.
+  ```
+  feature/
+  ├── auth/
+  │   ├── login/             (login_screen + login_viewmodel + login_state)
+  │   ├── signup/            (signup_screen + signup_viewmodel + signup_state)
+  │   └── forgot_password/   (3개 파일)
+  ├── home/                  (home_screen + home_viewmodel + home_state)
+  └── pay/                   (pay_screen + pay_viewmodel + pay_state)
+  ```
+- **State 클래스 별도 파일 분리**: 모든 ViewModel 의 `*State` 클래스를 `*_state.dart` 로 추출했습니다. 부수적으로 `HomeState.importType` 은 매직 문자열(`'file'` / `'link'`) → `HomeImportType` enum 으로, `PayState` 에는 `PayStatus` enum 을 신설하여 toast 메시지 분기 로직을 정돈했습니다.
+- **ViewModel UseCase 호출 전환**: 모든 ViewModel 이 Repository 를 직접 참조하던 부분을 UseCase Provider 호출로 교체했습니다.
+  - `LoginViewModel` → `loginUseCaseProvider`
+  - `SignUpViewModel` → `registerUseCaseProvider` + `sendEmailVerificationCodeUseCaseProvider` + `verifyEmailCodeUseCaseProvider`
+  - `ForgotPasswordViewModel` → `sendPasswordResetCodeUseCaseProvider` (mock delay 제거)
+  - `HomeViewModel` → `pickAudioFileUseCaseProvider`, `openAppSettingsUseCaseProvider`, `separateAudioUseCaseProvider`
+  - `PayViewModel` → `fetchCreditProductsUseCaseProvider`, `purchaseCreditUseCaseProvider`, `observePurchaseStatusUseCaseProvider` (직접 사용하던 `InAppPurchase` 와 `Fluttertoast` 호출 모두 제거)
+- **`home_screen` 권한·파일 직접 호출 제거**: `permission_handler` / `file_picker` 직접 호출을 모두 `HomeViewModel.pickFile()` 으로 이관했습니다. ViewModel 은 `PickAudioFileUseCase` 결과(`FilePickResult`) 를 반환하고, 화면은 그 결과 종류(success / cancelled / denied / permanentlyDenied)에 따라 토스트·다이얼로그만 노출합니다. `openAppSettings()` 도 `OpenAppSettingsUseCase` 경유로 변경했습니다.
+- **`Fluttertoast` 직접 호출 일괄 제거**: 모든 화면에서 `Fluttertoast.showToast(...)` 직접 호출을 제거하고 `core/notification/toast_module.dart` 의 `toastServiceProvider` 를 사용하도록 통일했습니다.
+- **`main.dart` 리팩토링**: 전역 `initialSharedText`, `SharedTextNotifier`, `sharedTextProvider` 와 `flutter_sharing_intent` 직접 사용을 모두 제거하고, `core/notification/sharingIntentServiceProvider` 에 위임했습니다. `MyApp` 을 `ConsumerStatefulWidget` → `ConsumerWidget` 으로 단순화하고, `MaterialApp.theme` 인라인 정의 → `AppTheme.light()` 호출로 교체했습니다.
+- **공유 인텐트 처리 통합**: `home_screen.dart` 에서 `core/notification` 의 `sharingIntentServiceProvider`(콜드 스타트용 `getInitialSharedText()`) + `sharedTextProvider`(`StreamProvider<String>`, 백그라운드 수신) 를 사용하도록 변경했습니다. 공유 링크 처리 로직은 `_applySharedLink(String url)` 헬퍼로 추출하여 init / listen 양쪽에서 공통 사용합니다.
+- **`build_runner` 재실행**: `dart run build_runner build --delete-conflicting-outputs` 를 실행하여 새 ViewModel 들의 `.g.dart` 산출물 213개를 새 구조 기준으로 재생성했습니다.
+- **DEPRECATION 대응**: `pay_screen.dart` 의 `RadioListTile.groupValue` / `onChanged` 가 Flutter 3.32.0-0.0.pre 이후 deprecated 되어, 상위에 `RadioGroup<String>` 을 두고 자식 `RadioListTile` 은 `value` 만 노출하는 구조로 교체했습니다.
+
+### 변경 이유
+- 클린 아키텍처 가이드의 **Feature 계층 구조 규칙** 과 **계층 의존성 규칙(feature → domain / core / design_system 만 허용)** 을 충족시키기 위함입니다.
+- presentation 계층(위젯) 에서 비즈니스 로직과 인프라(Permission / FilePicker / InAppPurchase / flutter_sharing_intent / Fluttertoast) 직접 의존을 모두 제거하여, 위젯이 UI 에만 집중하고 ViewModel 이 UseCase 만 호출하도록 정렬했습니다.
+- `main.dart` 가 인프라 라이브러리에 직접 의존하던 부분을 코어 모듈로 위임하여 의존 그래프를 단순화하고, 동일한 공유 인텐트 처리 코드 중복(콜드 스타트 + 스트림 양쪽) 을 한 서비스에 집약했습니다.
+
+### 실행 순서
+1. `lib/feature/auth/{login,signup,forgot_password}/` 하위로 `*_screen.dart`, `*_viewmodel.dart`, `*_state.dart` 신규 생성
+2. `lib/feature/home/`, `lib/feature/pay/` 도 동일 패턴으로 평탄화
+3. 각 ViewModel 의 Repository 직접 참조를 UseCase Provider 호출(`ref.read(loginUseCaseProvider.future)` 등) 로 교체
+4. `home_screen.dart` 의 `Permission`, `FilePicker`, `openAppSettings` 직접 호출 코드를 `HomeViewModel` + UseCase 흐름으로 이관
+5. 모든 화면의 `Fluttertoast` 직접 호출 → `ref.read(toastServiceProvider)` 로 교체
+6. `lib/router/app_router.dart` 의 import 경로를 새 구조에 맞춰 갱신
+7. 옛 `feature/<name>/widgets/`, `feature/<name>/viewmodel/` 폴더 + 기존 `.g.dart` 잔여 파일 삭제
+8. `lib/main.dart` 재작성 — `SharedTextNotifier` 와 `flutter_sharing_intent` 직접 사용 제거, `sharingIntentServiceProvider` 위임, `AppTheme.light()` 적용
+9. `home_screen.dart` 에서 `main.dart` 의 `sharedTextProvider` 의존 제거 후 `core/notification` 의 새 프로바이더 사용
+10. `dart run build_runner build --delete-conflicting-outputs` 실행
+11. `flutter analyze` 실행 → 발견된 3건(unused import 1건, deprecated API 2건) 수정 후 `No issues found!` 확인
+12. `WORKLOG.md` 에 작업 내용 기술
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/main.dart`
+- `/lib/router/app_router.dart`
+- `/lib/feature/auth/login/login_screen.dart` [NEW]
+- `/lib/feature/auth/login/login_viewmodel.dart` [NEW]
+- `/lib/feature/auth/login/login_state.dart` [NEW]
+- `/lib/feature/auth/signup/signup_screen.dart` [NEW]
+- `/lib/feature/auth/signup/signup_viewmodel.dart` [NEW]
+- `/lib/feature/auth/signup/signup_state.dart` [NEW]
+- `/lib/feature/auth/forgot_password/forgot_password_screen.dart` [NEW]
+- `/lib/feature/auth/forgot_password/forgot_password_viewmodel.dart` [NEW]
+- `/lib/feature/auth/forgot_password/forgot_password_state.dart` [NEW]
+- `/lib/feature/home/home_screen.dart` [NEW]
+- `/lib/feature/home/home_viewmodel.dart` [NEW]
+- `/lib/feature/home/home_state.dart` [NEW]
+- `/lib/feature/pay/pay_screen.dart` [NEW]
+- `/lib/feature/pay/pay_viewmodel.dart` [NEW]
+- `/lib/feature/pay/pay_state.dart` [NEW]
+- `/lib/feature/auth/widgets/`, `/lib/feature/auth/viewmodel/` [DELETED]
+- `/lib/feature/home/widgets/`, `/lib/feature/home/viewmodel/` [DELETED]
+- `/lib/feature/pay/widgets/`, `/lib/feature/pay/viewmodel/` [DELETED]
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- `flutter analyze` 결과 `No issues found!` 인지 확인합니다.
+- `dart run build_runner build --delete-conflicting-outputs` 가 오류 없이 종료되어 모든 `.g.dart` 가 새 구조 기준으로 재생성되었는지 확인합니다.
+- 앱 실행 후 로그인 → 홈 → 결제 흐름이 정상 동작하는지, 외부 공유 인텐트로 URL 이 전달될 때 자동으로 `링크로 가져오기` 탭으로 전환되며 입력란에 URL 이 채워지는지 확인합니다.
+- 홈 화면에서 파일 가져오기 시 권한 거부 / 영구 거부 / 취소 / 성공 4가지 분기에서 의도한 토스트·다이얼로그가 노출되는지 확인합니다.
+
+---
+
+## 2026-04-27 (클린 아키텍처 리펙토링 — Step 1~3: Core / Domain / Data 재구성)
+
+### 변경 사항
+- **Core 인프라 재구성**: 클린 아키텍처 가이드(`@flutter_agent.prompt.md`) 의 `lib/core/` 권장 구조에 맞춰 다음 모듈을 신설/정리했습니다.
+  - `core/env/` — 환경 설정(`AppEnv`) 및 DI 모듈
+  - `core/secure_storage/di/secure_storage_module.dart` — 토큰 등 민감 정보 저장 추상화
+  - `core/shared_pref/di/shared_pref_module.dart` — 키-값 저장 Provider
+  - `core/file/file_service.dart` + DI — `permission_handler` + `file_picker` 통합 인프라
+  - `core/notification/sharing_intent_service.dart` + DI — `flutter_sharing_intent` 캡슐화 (`getInitialSharedText`, `sharedTextStream`)
+  - `core/notification/toast_service.dart` + DI — `Fluttertoast` 캡슐화 (`showInfo`, `showError`)
+  - `core/design_system/color/app_color.dart`, `core/design_system/theme/app_theme.dart` — 글로벌 컬러 / 테마 정의
+  - 기존 `core/network` 정리(Dio 클라이언트, 인터셉터, 예외)
+- **Domain 재구성**: 비즈니스 규칙 전용 계층으로 분리했습니다.
+  - `domain/models/` — `auth_model.dart`(`AuthUser`), `audio_source.dart`(`AudioSource` / `AudioSourceType`), `credit_product.dart`(`CreditProduct`), `file_pick_result.dart`(`FilePickResult`)
+  - `domain/repositories/` — `auth_repository.dart`, `audio_repository.dart`, `credit_repository.dart`, `file_repository.dart` (모두 추상 인터페이스)
+  - `domain/exceptions/auth_exception.dart`
+  - `domain/usecases/` — 단일 책임 UseCase 11종:
+    - 인증: `login_usecase`, `register_usecase`, `send_email_verification_code_usecase`, `verify_email_code_usecase`, `send_password_reset_code_usecase`
+    - 오디오: `separate_audio_usecase`
+    - 결제: `fetch_credit_products_usecase`, `purchase_credit_usecase`, `observe_purchase_status_usecase`
+    - 파일: `pick_audio_file_usecase`, `open_app_settings_usecase`
+- **Data 재구성**: feature 별 `data/<feature>/` 하위에 `local/` + `remote/` + `di/` 패턴으로 통일했습니다.
+  - `data/auth/` — `local/`(DataSource + impl + pref keys), `remote/`(API service + DTO 4종 + DataSource + impl), `auth_repository_impl.dart`, `di/auth_data_module.dart`
+  - `data/audio/` — `remote/`(DataSource + impl), `audio_repository_impl.dart`, `di/audio_data_module.dart`
+  - `data/credit/` — `remote/`(DataSource + impl, `purchase_status_dto.dart`), `credit_repository_impl.dart`, `di/credit_data_module.dart` (`InAppPurchase` 인스턴스 Provider 포함)
+  - `data/file/` — `file_local_datasource.dart` + impl, `file_repository_impl.dart`, `di/file_data_module.dart` (`FileService` 위임)
+  - `data/mappers/` — `auth_mapper.dart`, `credit_mapper.dart`, `file_mapper.dart` (Extension 형태 DTO ↔ Domain 매핑)
+  - `data/di/` — UseCase Provider 모듈(`auth_usecase_module`, `audio_usecase_module`, `credit_usecase_module`, `file_usecase_module`)
+
+### 변경 이유
+- 기존 단일 평면 구조(`data/repositories/auth_repository_impl.dart` 등) 에서는 데이터 출처(local / remote), DTO, 매퍼, DI 의 책임이 흩어져 있어 신규 feature 추가 시 위치 합의가 어려웠습니다. 클린 아키텍처 가이드의 권장 구조를 그대로 따르도록 정렬했습니다.
+- presentation 이 직접 의존하던 인프라(권한, 파일 선택, 인앱 결제, 공유 인텐트, 토스트) 를 모두 코어 / 도메인 / 데이터 경계 안으로 흡수하여, ViewModel 이 UseCase 만 호출하면 되는 토대를 마련했습니다.
+- 도메인 모델과 DTO 를 명확히 분리하여 데이터 계층 외부로 DTO 가 유출되지 않도록 했습니다.
+
+### 실행 순서
+1. 가이드 문서 기반으로 `lib/core/` 의 누락 모듈(env, secure_storage, shared_pref, file, notification, design_system theme / color) 신설
+2. `lib/domain/` 에 모델 / 예외 / 리포지토리 인터페이스 정의 후 UseCase 11종 추출
+3. `lib/data/<feature>/` 구조로 DataSource(추상 + impl), DTO, API service, Repository impl 재배치 및 매퍼 추가
+4. `data/<feature>/di/` 와 `data/di/` 에 Riverpod 기반 DI / UseCase Provider 모듈 작성
+5. `dart run build_runner build` 로 `.g.dart` 산출물 생성
+
+### 수정 혹은 추가된 파일 경로
+- `/lib/core/env/app_env.dart` [NEW], `/lib/core/env/di/env_module.dart` [NEW]
+- `/lib/core/secure_storage/di/secure_storage_module.dart` [NEW]
+- `/lib/core/shared_pref/di/shared_pref_module.dart` [NEW]
+- `/lib/core/file/file_service.dart` [NEW], `/lib/core/file/di/file_module.dart` [NEW]
+- `/lib/core/notification/sharing_intent_service.dart` [NEW]
+- `/lib/core/notification/toast_service.dart` [NEW]
+- `/lib/core/notification/di/notification_module.dart` [NEW]
+- `/lib/core/notification/di/toast_module.dart` [NEW]
+- `/lib/core/design_system/color/app_color.dart` [NEW]
+- `/lib/core/design_system/theme/app_theme.dart` [NEW]
+- `/lib/domain/models/auth_model.dart`, `audio_source.dart`, `credit_product.dart`, `file_pick_result.dart` [NEW]
+- `/lib/domain/repositories/auth_repository.dart`, `audio_repository.dart`, `credit_repository.dart`, `file_repository.dart` [NEW]
+- `/lib/domain/exceptions/auth_exception.dart` [NEW]
+- `/lib/domain/usecases/*_usecase.dart` (11종) [NEW]
+- `/lib/data/auth/**` (local + remote + DTO + repository_impl + di) [NEW]
+- `/lib/data/audio/**` [NEW]
+- `/lib/data/credit/**` [NEW]
+- `/lib/data/file/**` [NEW]
+- `/lib/data/mappers/auth_mapper.dart`, `credit_mapper.dart`, `file_mapper.dart` [NEW]
+- `/lib/data/di/auth_usecase_module.dart`, `audio_usecase_module.dart`, `credit_usecase_module.dart`, `file_usecase_module.dart` [NEW]
+- `/docs/WORKLOG.md`
+
+### 검증 방법
+- `dart run build_runner build` 가 오류 없이 완료되어 각 DI / UseCase 모듈의 `.g.dart` 가 정상 생성되는지 확인합니다.
+- 도메인 / 데이터 계층 단독으로는 런타임 검증이 어려우므로, 실제 동작 검증은 Step 4(Feature 평탄화 + UseCase 호출 전환) 완료 후 일괄 수행합니다.
+
+---
+
 ## 2026-03-10 (안드로이드 디버그/릴리즈 빌드 환경 분리)
 
 ### 변경 사항

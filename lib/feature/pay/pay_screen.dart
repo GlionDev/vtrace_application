@@ -56,11 +56,15 @@ class PayScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
 
-              ...payState.products.map(
-                (product) => _ProductTile(
-                  product: product,
-                  groupValue: payState.selectedProductId,
-                  onChanged: (value) => viewModel.selectProduct(value!),
+              RadioGroup<String>(
+                groupValue: payState.selectedProductId,
+                onChanged: (value) {
+                  if (value != null) viewModel.selectProduct(value);
+                },
+                child: Column(
+                  children: payState.products
+                      .map((product) => _ProductTile(product: product))
+                      .toList(),
                 ),
               ),
 
@@ -82,15 +86,9 @@ class PayScreen extends ConsumerWidget {
 }
 
 class _ProductTile extends StatelessWidget {
-  const _ProductTile({
-    required this.product,
-    required this.groupValue,
-    required this.onChanged,
-  });
+  const _ProductTile({required this.product});
 
   final CreditProduct product;
-  final String groupValue;
-  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -101,8 +99,6 @@ class _ProductTile extends StatelessWidget {
       title: Text(title),
       subtitle: Text(product.priceLabel),
       value: product.id,
-      groupValue: groupValue,
-      onChanged: onChanged,
     );
   }
 }

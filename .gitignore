@@ -75,6 +75,10 @@ android/key.properties
 google-services.json
 GoogleService-Info.plist
 
+# macOS/IOS - Apple Silicon 환경에서 개발 시 생성될 수 있는 임시파일 제거
+.lsbom
+**/ios/.generated
+
 # Generated files
 # Un-comment the below lines if you don't want to track generated files
 # *.g.dart

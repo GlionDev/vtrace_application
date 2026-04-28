@@ -6,7 +6,6 @@ import '../../core/design_system/widgets/vtrace_button.dart';
 import '../../core/design_system/widgets/vtrace_textfield.dart';
 import '../../core/notification/di/notification_module.dart';
 import '../../core/notification/di/toast_module.dart';
-import 'home_state.dart';
 import 'home_viewmodel.dart';
 
 /// 앱의 메인 진입 후 처음 표시되는 홈 화면 위젯입니다.

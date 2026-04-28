@@ -1,97 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
-import 'package:flutter_sharing_intent/model/sharing_file.dart';
+
 import 'core/common/logger/app_logger.dart';
+import 'core/design_system/theme/app_theme.dart';
+import 'core/notification/di/notification_module.dart';
 import 'router/app_router.dart';
-import 'dart:async';
 
-String? initialSharedText;
-
-class SharedTextNotifier extends Notifier<String?> {
-  @override
-  String? build() => initialSharedText;
-
-  void setSharedText(String? text) {
-    state = text;
-  }
-}
-
-/// 앱 시작 시 외부로부터 공유받은 초기 텍스트(URL 등)를 저장하는 전역 프로바이더
-final sharedTextProvider = NotifierProvider<SharedTextNotifier, String?>(
-  SharedTextNotifier.new,
-);
-
+/// 앱 진입점입니다.
+///
+/// 로거 초기화 및 [ProviderScope] 를 통한 Riverpod 컨테이너 구성을 수행합니다.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppLogger.init();
 
-  // 앱이 완전히 종료된 상태에서 공유받아 실행될 때의 처리
-  try {
-    final List<SharedFile> initialMedia = await FlutterSharingIntent.instance
-        .getInitialSharing();
-    if (initialMedia.isNotEmpty &&
-        (initialMedia.first.type == SharedMediaType.TEXT ||
-            initialMedia.first.type == SharedMediaType.URL)) {
-      initialSharedText = initialMedia.first.value;
-    }
-  } catch (e) {
-    final logger = AppLogger.getLogger('main');
-    logger.severe('Failed to get initial shared media: $e');
-  }
-
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends ConsumerStatefulWidget {
+/// 앱 루트 위젯입니다.
+class MyApp extends ConsumerWidget {
+  /// [MyApp] 위젯을 생성합니다.
   const MyApp({super.key});
 
   @override
-  ConsumerState<MyApp> createState() => _MyAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 공유 인텐트 서비스를 미리 초기화하여 백그라운드 스트림 구독을 시작합니다.
+    ref.watch(sharingIntentServiceProvider);
 
-class _MyAppState extends ConsumerState<MyApp> {
-  late StreamSubscription _intentDataStreamSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    // 앱이 메모리에 올라와 있거나 백그라운드에 있을 때 공유받는 스트림 리스너
-    _intentDataStreamSubscription = FlutterSharingIntent.instance
-        .getMediaStream()
-        .listen(
-          (List<SharedFile> value) {
-            if (value.isNotEmpty &&
-                (value.first.type == SharedMediaType.TEXT ||
-                    value.first.type == SharedMediaType.URL)) {
-              ref
-                  .read(sharedTextProvider.notifier)
-                  .setSharedText(value.first.value);
-            }
-          },
-          onError: (err) {
-            final logger = AppLogger.getLogger('MyApp');
-            logger.severe('getMediaStream error: $err');
-          },
-        );
-  }
-
-  @override
-  void dispose() {
-    _intentDataStreamSubscription.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
       title: 'VTrace',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
       routerConfig: router,
     );
   }

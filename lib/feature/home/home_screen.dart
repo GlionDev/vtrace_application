@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/design_system/widgets/vtrace_button.dart';
 import '../../core/design_system/widgets/vtrace_textfield.dart';
+import '../../core/notification/di/notification_module.dart';
 import '../../core/notification/di/toast_module.dart';
-import '../../main.dart';
 import 'home_state.dart';
 import 'home_viewmodel.dart';
 
@@ -35,17 +35,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final initialText = ref.read(sharedTextProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final service = ref.read(sharingIntentServiceProvider);
+      final initialText = await service.getInitialSharedText();
+      if (!mounted) return;
       if (initialText != null && initialText.isNotEmpty) {
-        ref.read(homeViewModelProvider.notifier).handleSharedLink(initialText);
-        _linkController.text = initialText;
-        if (_tabController.index != 1) {
-          _tabController.animateTo(1);
-        }
-        ref.read(sharedTextProvider.notifier).setSharedText(null);
+        _applySharedLink(initialText);
       }
     });
+  }
+
+  void _applySharedLink(String url) {
+    ref.read(homeViewModelProvider.notifier).handleSharedLink(url);
+    _linkController.text = url;
+    if (_tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
   }
 
   @override
@@ -128,15 +133,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final homeState = ref.watch(homeViewModelProvider);
     final viewModel = ref.read(homeViewModelProvider.notifier);
 
-    ref.listen<String?>(sharedTextProvider, (previous, next) {
-      if (next != null && next.isNotEmpty) {
-        viewModel.handleSharedLink(next);
-        _linkController.text = next;
-        if (_tabController.index != 1) {
-          _tabController.animateTo(1);
+    ref.listen<AsyncValue<String>>(sharedTextProvider, (previous, next) {
+      next.whenData((url) {
+        if (url.isNotEmpty) {
+          _applySharedLink(url);
         }
-        ref.read(sharedTextProvider.notifier).setSharedText(null);
-      }
+      });
     });
 
     return Scaffold(
